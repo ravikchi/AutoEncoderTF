@@ -18,13 +18,22 @@ def runLayers(input_data, layers, sess):
 
     return opt
 
-def runDecodeLayers(input_data, layers, sess):
+def runDecodeLayers(input_data, layers, sess, inputX):
     opt = input_data
+    nn = None
+    input = inputX
     for i in range(len(layers)):
         encoder_op = layers[i]
+        input = tf.nn.sigmoid(tf.add(tf.matmul(input, encoder_op['weight']), encoder_op['bias']))
 
+    layers.reverse()
 
-    return opt
+    output = input
+    for i in range(len(layers)):
+        decoder_op = layers[i]
+        output = tf.nn.sigmoid(tf.add(tf.matmul(output, decoder_op['weightd']), decoder_op['biasd']))
+
+    return sess.run(output, feed_dict={inputX:input_data})
 
 def auto_encoder(x, input_size, output_size):
     weight = tf.Variable(tf.random_normal([input_size, output_size]))
@@ -41,7 +50,9 @@ def auto_encoder(x, input_size, output_size):
         'encoder':encoder,
         'weight':weight,
         'bias':bias,
-        'decoder':decoder
+        'decoder':decoder,
+        'weightd':weight2,
+        'biasd':bias2
     }
 
 
@@ -159,13 +170,13 @@ inputX = tf.placeholder("float", shape=None)
 
 outputX = tf.placeholder(tf.float32, [None, 10])
 
-layers = stack_auto_encoders(inputX, mnist.train.images, [256, 128], 256, 2, outputX, mnist.train.labels)
+layers = stack_auto_encoders(inputX, mnist.train.images, [256, 128], 256, 2000, outputX, mnist.train.labels)
 
 
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    decode = runDecodeLayers(mnist.test.images[:10], layers, sess)
+    decode = runDecodeLayers(mnist.test.images[:10], layers, sess, inputX)
 
     f, a = plt.subplots(2, 10, figsize=(10, 2))
     for i in range(10):
