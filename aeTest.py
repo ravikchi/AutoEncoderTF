@@ -13,7 +13,8 @@ batch_size = 256
 display_step = 1
 examples_to_show = 10
 
-def auto_encoder(x, input_size, output_size):
+
+def auto_encoder(x,input_size, output_size):
     weight = tf.Variable(tf.random_normal([input_size, output_size]))
     bias = tf.Variable(tf.random_normal([output_size]))
 
@@ -26,19 +27,15 @@ def auto_encoder(x, input_size, output_size):
 
     return {
         'encoder': encoder,
-        'weight': weight,
-        'bias': bias,
         'decoder': decoder,
-        'weightd': weight2,
-        'biasd': bias2,
-        'x':x
+        'x': x
     }
 
-X = tf.placeholder("float", [None, 784])
-encoder = auto_encoder(X, 784, 256)
+x = tf.placeholder("float", [None, 784])
+encoder_op = auto_encoder(x, 784, 256)
 
-y_pred = encoder['decoder']
-y_true = X
+y_pred = encoder_op['decoder']
+y_true = x
 
 cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
 optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
@@ -48,19 +45,19 @@ init = tf.global_variables_initializer()
 sess = tf.InteractiveSession()
 sess.run(init)
 
-total_batch = int(mnist.train.num_examples/batch_size)
+total_batch = int(mnist.train.num_examples / batch_size)
 for epoch in range(training_epochs):
     for i in range(total_batch):
         batch_xs, batch_ys = mnist.train.next_batch(batch_size)
-        _, c = sess.run([optimizer, cost], feed_dict={encoder['x']: batch_xs})
+        _, c = sess.run([optimizer, cost], feed_dict={x: batch_xs})
     if epoch % display_step == 0:
-        print("Epoch:", '%04d' % (epoch+1),
+        print("Epoch:", '%04d' % (epoch + 1),
               "cost=", "{:.9f}".format(c))
 
 print("Optimization Finished!")
 
 encode_decode = sess.run(
-    y_pred, feed_dict={encoder['x']: mnist.test.images[:examples_to_show]})
+    y_pred, feed_dict={y_true: mnist.test.images[:examples_to_show]})
 
 
 f, a = plt.subplots(2, 10, figsize=(10, 2))
