@@ -26,7 +26,12 @@ def create_encoder(weight_e, bias_e, weight_d, bias_d, x):
         'x': x
     }
 
+<<<<<<< HEAD
 def temp_encoder(x, input_size, output_size):
+=======
+
+def auto_encoder(x,input_size, output_size):
+>>>>>>> 1aae8c7a1977ecca584d408c97c32d6ad31b7ea0
     weight = tf.Variable(tf.random_normal([input_size, output_size]))
     bias = tf.Variable(tf.random_normal([output_size]))
 
@@ -35,6 +40,7 @@ def temp_encoder(x, input_size, output_size):
 
     return create_encoder(weight, bias, weight2, bias2, x)
 
+<<<<<<< HEAD
 def train_layer(training_epochs, batch_size, display_step, optimizer, cost, input_data, temp_encoder, layers):
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
@@ -48,6 +54,19 @@ def train_layer(training_epochs, batch_size, display_step, optimizer, cost, inpu
                 end = count + batch_size
                 if end > len(input_data):
                     end = len(input_data)
+=======
+    return {
+        'encoder': encoder,
+        'decoder': decoder,
+        'x': x
+    }
+
+x = tf.placeholder("float", [None, 784])
+encoder_op = auto_encoder(x, 784, 256)
+
+y_pred = encoder_op['decoder']
+y_true = x
+>>>>>>> 1aae8c7a1977ecca584d408c97c32d6ad31b7ea0
 
                 batch_xs = runLayers(input_data[count:end], layers, session)
                 _, c = session.run([optimizer, cost], feed_dict={temp_encoder['x']: batch_xs})
@@ -60,7 +79,18 @@ def train_layer(training_epochs, batch_size, display_step, optimizer, cost, inpu
                 print("Epoch:", '%04d' % (epoch + 1),
                       "cost=", "{:.9f}".format(cst))
 
+<<<<<<< HEAD
         print("Optimization Finished!")
+=======
+total_batch = int(mnist.train.num_examples / batch_size)
+for epoch in range(training_epochs):
+    for i in range(total_batch):
+        batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+        _, c = sess.run([optimizer, cost], feed_dict={x: batch_xs})
+    if epoch % display_step == 0:
+        print("Epoch:", '%04d' % (epoch + 1),
+              "cost=", "{:.9f}".format(c))
+>>>>>>> 1aae8c7a1977ecca584d408c97c32d6ad31b7ea0
 
         weight_e = tf.constant(session.run(temp_encoder['weight']))
         bias_e = tf.constant(session.run(temp_encoder['bias']))
@@ -92,10 +122,15 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 examples_to_show = 10
 encoder = train(0.01, 20, 256, 1, mnist.train.images, 256)
 
+<<<<<<< HEAD
 with tf.Session() as def_session:
     def_session.run(tf.global_variables_initializer())
     encode_decode = def_session.run(
         encoder['decoder'], feed_dict={encoder['x']: mnist.test.images[:examples_to_show]})
+=======
+encode_decode = sess.run(
+    y_pred, feed_dict={y_true: mnist.test.images[:examples_to_show]})
+>>>>>>> 1aae8c7a1977ecca584d408c97c32d6ad31b7ea0
 
 
     f, a = plt.subplots(2, 10, figsize=(10, 2))
