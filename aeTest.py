@@ -26,7 +26,7 @@ def create_encoder(weight_e, bias_e, weight_d, bias_d, x):
         'x': x
     }
 
-def auto_encoder(x, input_size, output_size):
+def temp_encoder(x, input_size, output_size):
     weight = tf.Variable(tf.random_normal([input_size, output_size]))
     bias = tf.Variable(tf.random_normal([output_size]))
 
