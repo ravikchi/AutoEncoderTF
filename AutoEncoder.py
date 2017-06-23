@@ -69,7 +69,7 @@ def create_temp_encoder(x, input_size, output_size):
     weight = tf.Variable(tf.random_normal([input_size, output_size]))
     bias = tf.Variable(tf.random_normal([output_size]))
 
-    weight2 = tf.Variable(tf.random_normal([output_size, input_size]))
+    weight2 = tf.transpose(weight)
     bias2 = tf.Variable(tf.random_normal([input_size]))
 
     return create_encoder(weight, bias, weight2, bias2, x)
@@ -206,7 +206,7 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 # In[9]:
 
 learnin_rate = 0.01
-num_epochs = 1000
+num_epochs = 80
 bat_size = 256
 steps = [256, 128, 64]
 display_steps = 5
