@@ -31,7 +31,7 @@ def runDecodeLayers(layers):
     output = input
     for layer in layers:
         output = tf.nn.sigmoid(tf.add(tf.matmul(output, layer['weightd']), layer['biasd']))
-        
+
     layers.reverse()
 
     return output
@@ -206,7 +206,7 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 # In[9]:
 
 learnin_rate = 0.01
-num_epochs = 500
+num_epochs = 1000
 bat_size = 256
 steps = [256, 128, 64]
 display_steps = 5
