@@ -206,9 +206,9 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 # In[9]:
 
 learnin_rate = 0.01
-num_epochs = 80
+num_epochs = 320
 bat_size = 256
-steps = [256, 128, 64]
+steps = [256, 256, 128]
 display_steps = 5
 final_step = 10
 input_data = mnist.train.images
