@@ -180,7 +180,7 @@ layers.append(layer2.unsupervised_train(mnist.train.images, 320))
 layers.append(layer3.unsupervised_train(mnist.train.images, 320))
 layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
-decoder, input = mergeLayers(layers[-1])
+decoder, input = mergeLayers(layers[:-1])
 
 encoder, inputX = getEncoder(layers)
 
