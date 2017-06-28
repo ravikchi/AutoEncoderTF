@@ -7,6 +7,7 @@ import time
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
+min_error = 0.000001
 
 class AutoEncoder:
     def __init__(self, input_size, hidden_size, activation_function, previous=None, outputX=None, inputX=None):
@@ -130,6 +131,9 @@ class AutoEncoder:
                     count = end
 
                 cst = cst / total_batch
+                if cst < min_error:
+                    break
+
                 end = time.time()
                 if epoch % display_steps == 0:
                     print("Epoch:", '%04d' % (epoch + 1),
@@ -185,9 +189,9 @@ examples_to_show = 10
 
 layers = []
 
-layers.append(layer1.unsupervised_train(mnist.train.images, 80))
-layers.append(layer2.unsupervised_train(mnist.train.images, 80))
-layers.append(layer3.unsupervised_train(mnist.train.images, 80))
+layers.append(layer1.unsupervised_train(mnist.train.images, 320))
+layers.append(layer2.unsupervised_train(mnist.train.images, 320))
+layers.append(layer3.unsupervised_train(mnist.train.images, 320))
 #layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
 decoder, input = mergeLayers(layers)
@@ -211,14 +215,20 @@ with tf.Session() as def_session:
     def_session.run(tf.global_variables_initializer())
     for epoch in range(320):
         total_batch = int(len(mnist.train.images)/256)
+        cst = 0.0
         for i in range(total_batch):
             batch_xs, batch_ys = mnist.train.next_batch(256)
             _, c = def_session.run([optimizer, cost],
                                        feed_dict={inputX: batch_xs, outputX: batch_ys})
 
+            cst += c
+        cst = cst/total_batch
+        if cst < min_error:
+            break
+
         if epoch % 1 == 0:
             print("Epoch:", '%04d' % (epoch + 1),
-                  "cost=", "{:.9f}".format(c))
+                  "cost=", "{:.9f}".format(cst))
 
     print("Optimization Finished!")
 
