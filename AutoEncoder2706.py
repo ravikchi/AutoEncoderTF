@@ -206,7 +206,7 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 # In[9]:
 
 learnin_rate = 0.01
-num_epochs = 80
+num_epochs = 20
 bat_size = 256
 steps = [256]
 display_steps = 5

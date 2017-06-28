@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 from tensorflow.examples.tutorials.mnist import input_data
@@ -8,7 +9,7 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
 
 class AutoEncoder:
-    def __init__(self, input_size, hidden_size, activation_function, previous=None, inputX=None):
+    def __init__(self, input_size, hidden_size, activation_function, previous=None, outputX=None, inputX=None):
         self.input_size = input_size
         self.hidden_size = hidden_size
 
@@ -26,6 +27,11 @@ class AutoEncoder:
             self.inputX = inputX
         else:
             self.inputX = tf.placeholder('float', [None, input_size])
+
+        if outputX!= None :
+            self.outputX = outputX
+        else:
+            self.outputX = self.inputX
 
         self.activation_function = activation_function
 
@@ -81,10 +87,14 @@ class AutoEncoder:
 
         return self.tf_session.run(self.encoder, feed_dict={self.inputX:input_data})
 
-    def unsupervised_train(self, input_data, training_epochs=20, learning_rate=0.01, batch_size=256):
+    def unsupervised_train(self, input_data, training_epochs=20, output_data = [], learning_rate=0.01, display_steps=10, batch_size=256):
 
-        y_pred = self.decoder
-        y_true = self.inputX
+        print(len(output_data))
+        if len(output_data) == 0:
+            y_pred = self.decoder
+        else:
+            y_pred = self.encoder
+        y_true = self.outputX
 
         cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
         optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
@@ -95,35 +105,43 @@ class AutoEncoder:
             self.tf_session.run(tf.global_variables_initializer())
             total_batch = int(input_size / batch_size)
             for epoch in range(training_epochs):
+                start = time.time()
                 count = 0
                 cst = 0.0
 
                 for i in range(total_batch):
                     end = count + batch_size
-                    if end > len(input_data):
-                        end = len(input_data)
+                    if end > input_size:
+                        end = input_size
 
                     if self.previous:
                         batch_xs = self.previous.output(input_data[count:end], self.tf_session)
                     else:
                         batch_xs = input_data[count:end]
 
-                    _, c = self.tf_session.run([optimizer, cost], feed_dict={self.inputX: batch_xs})
+                    if len(output_data) == 0:
+                        batch_ys = batch_xs
+                    else:
+                        batch_ys = output_data[count:end]
 
+                    _, c = self.tf_session.run([optimizer, cost],
+                                               feed_dict={self.inputX: batch_xs, self.outputX: batch_ys})
                     cst = cst + c
+                    count = end
 
                 cst = cst / total_batch
-                if epoch % 1 == 0:
+                end = time.time()
+                if epoch % display_steps == 0:
                     print("Epoch:", '%04d' % (epoch + 1),
                           "cost=", "{:.9f}".format(cst))
+                    print('epoch took {}'.format((end - start) * 1000))
+
 
             print("Optimization Finished!")
 
             self.set_constants()
 
             return self
-
-            #return self.get_trained_values()
 
 def mergeLayers(layers):
     inputX = layers[0].inputX
@@ -139,19 +157,39 @@ def mergeLayers(layers):
     layers.reverse()
     return output, layers[0].inputX
 
+def getEncoder(layers):
+    inputX = layers[0].inputX
+    for layer in layers:
+        inputX = layer.activation_function(tf.add(tf.matmul(inputX, layer.weight_e), layer.bias_e))
+
+
+    return inputX, layers[0].inputX
+
+outputX = tf.placeholder('float', [None, 10])
 layer1 = AutoEncoder(784, 256, tf.nn.sigmoid)
 layer2 = AutoEncoder(256, 256, tf.nn.sigmoid, layer1)
 layer3 = AutoEncoder(256, 128, tf.nn.sigmoid, layer2)
+layer4 = AutoEncoder(128, 10, tf.nn.sigmoid, layer3, outputX)
 
 examples_to_show = 10
 
 layers = []
 
-layers.append(layer1.unsupervised_train(mnist.train.images, 160))
-layers.append(layer2.unsupervised_train(mnist.train.images, 160))
-layers.append(layer3.unsupervised_train(mnist.train.images, 160))
+layers.append(layer1.unsupervised_train(mnist.train.images, 320))
+layers.append(layer2.unsupervised_train(mnist.train.images, 320))
+layers.append(layer3.unsupervised_train(mnist.train.images, 320))
+layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
-decoder, input = mergeLayers(layers)
+decoder, input = mergeLayers(layers[-1])
+
+encoder, inputX = getEncoder(layers)
+
+correct_prediction = tf.equal(tf.argmax(encoder,1), tf.argmax(outputX,1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+with tf.Session() as def_session:
+    def_session.run(tf.global_variables_initializer())
+    print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
 
 
 with tf.Session() as def_session:
