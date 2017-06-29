@@ -178,6 +178,54 @@ def finalLayer(layers):
 
     return inputX, layers[0].inputX
 
+def final_layer_train(encoder_pt, input_count, hidden_size, input_data, output_data, training_epochs=20, learning_rate=0.01, display_steps=10, batch_size=256):
+    weight = tf.Variable(tf.random_normal([input_count, hidden_size]))
+    bias = tf.Variable(tf.random_normal([hidden_size]))
+
+    encoder = tf.nn.sigmoid(tf.add(tf.matmul(encoder_pt, weight), bias))
+
+    y_true = outputX
+    y_pred = encoder
+
+    cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
+    optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
+
+    input_size =len(input_data)
+
+    with tf.Session() as def_session:
+        def_session.run(tf.global_variables_initializer())
+        for epoch in range(training_epochs):
+            total_batch = int(input_size / batch_size)
+            count = 0
+            cst = 0.0
+            for i in range(total_batch):
+                end = count + batch_size
+                if end > input_size:
+                    end = input_size
+
+                batch_xs = input_data[count:end]
+                batch_ys = output_data[count:end]
+
+                _, c = def_session.run([optimizer, cost],
+                                       feed_dict={inputX: batch_xs, outputX: batch_ys})
+
+                cst += c
+                count = end
+            cst = cst / total_batch
+            if cst < min_error:
+                break
+
+            if epoch % display_steps == 0:
+                print("Epoch:", '%04d' % (epoch + 1),
+                      "cost=", "{:.9f}".format(cst))
+
+        print("Optimization Finished!")
+
+        correct_prediction = tf.equal(tf.argmax(encoder, 1), tf.argmax(outputX, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+        print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
+
 outputX = tf.placeholder('float', [None, 10])
 layer1 = AutoEncoder(784, 256, tf.nn.sigmoid)
 layer2 = AutoEncoder(256, 256, tf.nn.sigmoid, layer1)
@@ -189,9 +237,9 @@ examples_to_show = 10
 
 layers = []
 
-layers.append(layer1.unsupervised_train(mnist.train.images, 320))
-layers.append(layer2.unsupervised_train(mnist.train.images, 320))
-layers.append(layer3.unsupervised_train(mnist.train.images, 320))
+layers.append(layer1.unsupervised_train(mnist.train.images, 20))
+layers.append(layer2.unsupervised_train(mnist.train.images, 20))
+layers.append(layer3.unsupervised_train(mnist.train.images, 20))
 #layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
 decoder, input = mergeLayers(layers)
@@ -200,42 +248,7 @@ decoder, input = mergeLayers(layers)
 
 encoder_pt, inputX = finalLayer(layers)
 
-weight = tf.Variable(tf.random_normal([layer3.hidden_size, 10]))
-bias = tf.Variable(tf.random_normal([10]))
-
-encoder = tf.nn.sigmoid(tf.add(tf.matmul(encoder_pt, weight), bias))
-
-y_true = outputX
-y_pred = encoder
-
-cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-optimizer = tf.train.RMSPropOptimizer(0.01).minimize(cost)
-
-with tf.Session() as def_session:
-    def_session.run(tf.global_variables_initializer())
-    for epoch in range(320):
-        total_batch = int(len(mnist.train.images)/256)
-        cst = 0.0
-        for i in range(total_batch):
-            batch_xs, batch_ys = mnist.train.next_batch(256)
-            _, c = def_session.run([optimizer, cost],
-                                       feed_dict={inputX: batch_xs, outputX: batch_ys})
-
-            cst += c
-        cst = cst/total_batch
-        if cst < min_error:
-            break
-
-        if epoch % 1 == 0:
-            print("Epoch:", '%04d' % (epoch + 1),
-                  "cost=", "{:.9f}".format(cst))
-
-    print("Optimization Finished!")
-
-    correct_prediction = tf.equal(tf.argmax(encoder,1), tf.argmax(outputX,1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-    print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
+final_layer_train(encoder_pt, 128, 10, mnist.train.images, mnist.train.labels)
 
 
 with tf.Session() as def_session:
