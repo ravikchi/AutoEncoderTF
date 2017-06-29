@@ -252,7 +252,7 @@ decoder, input = mergeLayers(layers)
 
 encoder_pt, inputX = finalLayer(layers)
 
-final_layer_train(encoder_pt, 128, 10, mnist.train.images[:10000], mnist.train.labels[:10000], 320)
+final_layer_train(encoder_pt, 64, 10, mnist.train.images[:10000], mnist.train.labels[:10000], 320)
 
 
 with tf.Session() as def_session:
