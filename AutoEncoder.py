@@ -230,6 +230,8 @@ outputX = tf.placeholder('float', [None, 10])
 layer1 = AutoEncoder(784, 256, tf.nn.sigmoid)
 layer2 = AutoEncoder(256, 256, tf.nn.sigmoid, layer1)
 layer3 = AutoEncoder(256, 128, tf.nn.sigmoid, layer2)
+layer4 = AutoEncoder(128, 128, tf.nn.sigmoid, layer3)
+layer5 = AutoEncoder(128, 64, tf.nn.sigmoid, layer4)
 #layer4 = AutoEncoder(128, 10, tf.nn.sigmoid, layer3, outputX)
 
 
@@ -237,9 +239,11 @@ examples_to_show = 10
 
 layers = []
 
-layers.append(layer1.unsupervised_train(mnist.train.images, 20))
-layers.append(layer2.unsupervised_train(mnist.train.images, 20))
-layers.append(layer3.unsupervised_train(mnist.train.images, 20))
+layers.append(layer1.unsupervised_train(mnist.train.images, 320))
+layers.append(layer2.unsupervised_train(mnist.train.images, 320))
+layers.append(layer3.unsupervised_train(mnist.train.images, 320))
+layers.append(layer4.unsupervised_train(mnist.train.images, 320))
+layers.append(layer5.unsupervised_train(mnist.train.images, 320))
 #layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
 decoder, input = mergeLayers(layers)
@@ -248,7 +252,7 @@ decoder, input = mergeLayers(layers)
 
 encoder_pt, inputX = finalLayer(layers)
 
-final_layer_train(encoder_pt, 128, 10, mnist.train.images, mnist.train.labels)
+final_layer_train(encoder_pt, 128, 10, mnist.train.images[:10000], mnist.train.labels[:10000], 320)
 
 
 with tf.Session() as def_session:
