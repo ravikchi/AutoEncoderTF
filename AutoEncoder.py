@@ -10,11 +10,13 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 min_error = 0.000001
 
 class AutoEncoder:
-    def __init__(self, input_size, hidden_size, activation_function, previous=None, outputX=None, inputX=None):
+    def __init__(self, input_size, hidden_size, activation_function, previous=None, outputX=None, inputX=None, corrfac=0.1):
         self.input_size = input_size
         self.hidden_size = hidden_size
 
         self.tf_session = None
+
+        self.corrfac = corrfac
 
         self.weight_e = tf.Variable(tf.random_normal([input_size, hidden_size]))
         self.bias_e = tf.Variable(tf.random_normal([hidden_size]))
@@ -88,6 +90,28 @@ class AutoEncoder:
 
         return self.tf_session.run(self.encoder, feed_dict={self.inputX:input_data})
 
+    def salt_and_pepper_noise(self, X, v):
+        if(np.random.random() > self.corrfac):
+            return X
+
+        X_noise = X.copy()
+        n_features = X.shape[1]
+
+        mn = X.min()
+        mx = X.max()
+
+        for i, sample in enumerate(X):
+            mask = np.random.randint(0, n_features, v)
+
+            for m in mask:
+
+                if np.random.random() < 0.5:
+                    X_noise[i][m] = mn
+                else:
+                    X_noise[i][m] = mx
+
+        return X_noise
+
     def unsupervised_train(self, input_data, training_epochs=20, output_data = [], learning_rate=0.01, display_steps=10, batch_size=256):
 
         print(len(output_data))
@@ -115,13 +139,18 @@ class AutoEncoder:
                     if end > input_size:
                         end = input_size
 
+                    corruption_ratio = np.round(self.corrfac * input_data.shape[1]).astype(np.int)
+
                     if self.previous:
-                        batch_xs = self.previous.output(input_data[count:end], self.tf_session)
+                        batch_xs = self.salt_and_pepper_noise(self.previous.output(input_data[count:end], self.tf_session), corruption_ratio)
                     else:
-                        batch_xs = input_data[count:end]
+                        batch_xs = self.salt_and_pepper_noise(input_data[count:end], corruption_ratio)
 
                     if len(output_data) == 0:
-                        batch_ys = batch_xs
+                        if self.previous:
+                            batch_ys = self.previous.output(input_data[count:end], self.tf_session)
+                        else:
+                            batch_ys = input_data[count:end]
                     else:
                         batch_ys = output_data[count:end]
 
@@ -178,7 +207,7 @@ def finalLayer(layers):
 
     return inputX, layers[0].inputX
 
-def final_layer_train(encoder_pt, input_count, hidden_size, input_data, output_data, training_epochs=20, learning_rate=0.01, display_steps=10, batch_size=256):
+def final_layer_train(encoder_pt, input_count, hidden_size, input_data, output_data, inputX, training_epochs=20, learning_rate=0.01, display_steps=10, batch_size=256):
     weight = tf.Variable(tf.random_normal([input_count, hidden_size]))
     bias = tf.Variable(tf.random_normal([hidden_size]))
 
@@ -230,8 +259,8 @@ outputX = tf.placeholder('float', [None, 10])
 layer1 = AutoEncoder(784, 256, tf.nn.sigmoid)
 layer2 = AutoEncoder(256, 256, tf.nn.sigmoid, layer1)
 layer3 = AutoEncoder(256, 128, tf.nn.sigmoid, layer2)
-layer4 = AutoEncoder(128, 128, tf.nn.sigmoid, layer3)
-layer5 = AutoEncoder(128, 64, tf.nn.sigmoid, layer4)
+#layer4 = AutoEncoder(128, 128, tf.nn.sigmoid, layer3)
+#layer5 = AutoEncoder(128, 64, tf.nn.sigmoid, layer4)
 #layer4 = AutoEncoder(128, 10, tf.nn.sigmoid, layer3, outputX)
 
 
@@ -242,8 +271,8 @@ layers = []
 layers.append(layer1.unsupervised_train(mnist.train.images, 320))
 layers.append(layer2.unsupervised_train(mnist.train.images, 320))
 layers.append(layer3.unsupervised_train(mnist.train.images, 320))
-layers.append(layer4.unsupervised_train(mnist.train.images, 320))
-layers.append(layer5.unsupervised_train(mnist.train.images, 320))
+#layers.append(layer4.unsupervised_train(mnist.train.images, 320))
+#layers.append(layer5.unsupervised_train(mnist.train.images, 320))
 #layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
 decoder, input = mergeLayers(layers)
@@ -252,7 +281,7 @@ decoder, input = mergeLayers(layers)
 
 encoder_pt, inputX = finalLayer(layers)
 
-final_layer_train(encoder_pt, 64, 10, mnist.train.images, mnist.train.labels, 320)
+final_layer_train(encoder_pt, 128, 10, mnist.train.images, mnist.train.labels,inputX, 320)
 
 
 with tf.Session() as def_session:
