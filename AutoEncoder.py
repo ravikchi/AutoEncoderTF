@@ -192,9 +192,9 @@ class AutoEncoder:
                     else:
                         validation_count+=1
                 else:
+                    old_validation_error = validation_error
                     validation_count = 0
 
-                old_validation_error = validation_error
 
                 if epoch % display_steps == 0:
                     print("Epoch:", '%04d' % (epoch + 1),
