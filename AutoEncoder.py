@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import csv
 
 
 from tensorflow.examples.tutorials.mnist import input_data
@@ -112,7 +113,10 @@ class AutoEncoder:
 
         return X_noise
 
-    def unsupervised_train(self, input_data, training_epochs=20, output_data = [], learning_rate=0.01, display_steps=10, batch_size=256):
+    def unsupervised_train(self, training_data, training_epochs=20, output_data = [], learning_rate=0.01, display_steps=10, batch_size=256):
+        val_size = int(len(training_data)/10)
+        input_data = training_data[:-val_size]
+        validation_data = training_data[-val_size:]
 
         print(len(output_data))
         if len(output_data) == 0:
@@ -129,17 +133,21 @@ class AutoEncoder:
             input_size = len(input_data)
             self.tf_session.run(tf.global_variables_initializer())
             total_batch = int(input_size / batch_size)
+
+            old_validation_error = 10000
+            validation_count = 0
             for epoch in range(training_epochs):
                 start = time.time()
                 count = 0
                 cst = 0.0
+
+                corruption_ratio = np.round(self.corrfac * input_data.shape[1]).astype(np.int)
 
                 for i in range(total_batch):
                     end = count + batch_size
                     if end > input_size:
                         end = input_size
 
-                    corruption_ratio = np.round(self.corrfac * input_data.shape[1]).astype(np.int)
 
                     if self.previous:
                         batch_xs = self.salt_and_pepper_noise(self.previous.output(input_data[count:end], self.tf_session), corruption_ratio)
@@ -162,6 +170,35 @@ class AutoEncoder:
                 cst = cst / total_batch
                 if cst < min_error:
                     break
+
+                if self.previous:
+                    batch_xs = self.previous.output(validation_data, self.tf_session)
+                else:
+                    batch_xs = validation_data
+
+                if len(output_data) == 0:
+                    if self.previous:
+                        batch_ys = self.previous.output(validation_data, self.tf_session)
+                    else:
+                        batch_ys = validation_data
+                else:
+                    batch_ys = validation_data
+
+                validation_error = self.tf_session.run(cost, feed_dict={self.inputX:batch_xs, self.outputX:batch_ys})
+
+                if validation_error > old_validation_error:
+                    if validation_count > 100:
+                        break
+                    else:
+                        validation_count+=1
+                else:
+                    validation_count = 0
+
+                old_validation_error = validation_error
+
+                if epoch % display_steps == 0:
+                    print("Epoch:", '%04d' % (epoch + 1),
+                          "validation cost=", "{:.9f}".format(c))
 
                 end = time.time()
                 if epoch % display_steps == 0:
@@ -255,12 +292,45 @@ def final_layer_train(encoder_pt, input_count, hidden_size, input_data, output_d
 
         print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
 
+
+def get_input_data(location):
+    with open(location) as csvfile:
+        csv_data = list(csv.DictReader(csvfile))
+
+    keyList = csv_data[0].keys()
+
+    for element in keyList:
+        if element == 'DOMAIN' or element == 'NODE_ID':
+            continue
+        values = set(float(data[element]) for data in csv_data)
+        maximum = max(values)
+        minimum = min(values)
+        for data in csv_data:
+            data[element] = (float(data[element]) - minimum) / (maximum - minimum)
+
+    input_data = []
+    for data in csv_data:
+        element = []
+        for key in keyList:
+            if key == 'DOMAIN' or key == 'NODE_ID':
+                continue
+            element.append(data[key])
+
+        input_data.append(element)
+
+    return input_data
+
+input_data = np.array(get_input_data('input_data.csv'))
+
+train_data = input_data[:-1000]
+test_data = input_data[-1000:]
+
 outputX = tf.placeholder('float', [None, 10])
-layer1 = AutoEncoder(784, 2048, tf.nn.sigmoid)
-layer2 = AutoEncoder(2048, 1024, tf.nn.sigmoid, layer1)
-layer3 = AutoEncoder(1024, 512, tf.nn.sigmoid, layer2)
-layer4 = AutoEncoder(512, 256, tf.nn.sigmoid, layer3)
-layer5 = AutoEncoder(256, 128, tf.nn.sigmoid, layer4)
+layer1 = AutoEncoder(17, 1000, tf.nn.sigmoid)
+layer2 = AutoEncoder(1000, 100, tf.nn.sigmoid, layer1)
+layer3 = AutoEncoder(100, 10, tf.nn.sigmoid, layer2)
+# layer4 = AutoEncoder(512, 256, tf.nn.sigmoid, layer3)
+# layer5 = AutoEncoder(256, 128, tf.nn.sigmoid, layer4)
 #layer4 = AutoEncoder(128, 10, tf.nn.sigmoid, layer3, outputX)
 
 
@@ -268,29 +338,34 @@ examples_to_show = 10
 
 layers = []
 
-layers.append(layer1.unsupervised_train(mnist.train.images, 320))
-layers.append(layer2.unsupervised_train(mnist.train.images, 320))
-layers.append(layer3.unsupervised_train(mnist.train.images, 320))
-layers.append(layer4.unsupervised_train(mnist.train.images, 320))
-layers.append(layer5.unsupervised_train(mnist.train.images, 320))
+layers.append(layer1.unsupervised_train(train_data, 320))
+layers.append(layer2.unsupervised_train(train_data, 320))
+layers.append(layer3.unsupervised_train(train_data, 320))
+# layers.append(layer4.unsupervised_train(mnist.train.images, 320))
+# layers.append(layer5.unsupervised_train(mnist.train.images, 320))
 #layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
 
 decoder, input = mergeLayers(layers)
 
 #encoder, inputX = getEncoder(layers)
 
-encoder_pt, inputX = finalLayer(layers)
-
-final_layer_train(encoder_pt, 128, 10, mnist.train.images, mnist.train.labels,inputX, 320)
-
+# encoder_pt, inputX = finalLayer(layers)
+#
+# final_layer_train(encoder_pt, 128, 10, mnist.train.images, mnist.train.labels,inputX, 320)
+#
+#
+# with tf.Session() as def_session:
+#     def_session.run(tf.global_variables_initializer())
+#     encode_decode = def_session.run(decoder, feed_dict={input:mnist.test.images[:examples_to_show]})
+#
+# f, a = plt.subplots(2, 10, figsize=(10, 2))
+# for i in range(examples_to_show):
+#     a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
+#     a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
+#
+# plt.show()
 
 with tf.Session() as def_session:
-    def_session.run(tf.global_variables_initializer())
-    encode_decode = def_session.run(decoder, feed_dict={input:mnist.test.images[:examples_to_show]})
+    error = tf.reduce_mean(tf.pow(decoder - input, 2))
 
-f, a = plt.subplots(2, 10, figsize=(10, 2))
-for i in range(examples_to_show):
-    a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
-    a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
-
-plt.show()
+    print(1-def_session.run(error, feed_dict={input: test_data}))
