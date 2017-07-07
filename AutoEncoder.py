@@ -287,10 +287,13 @@ def final_layer_train(encoder_pt, input_count, hidden_size, input_data, output_d
 
         print("Optimization Finished!")
 
-        correct_prediction = tf.equal(tf.argmax(encoder, 1), tf.argmax(outputX, 1))
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        saver.save(def_session, "/tmp/model.ckpt")
 
-        print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
+        # correct_prediction = tf.equal(tf.argmax(encoder, 1), tf.argmax(outputX, 1))
+        # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        # print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
+
+    return encoder
 
 
 def get_input_data(location):
@@ -320,12 +323,41 @@ def get_input_data(location):
 
     return input_data
 
+def get_selected_input_data(location, nodes):
+    with open(location) as csvfile:
+        csv_data = list(csv.DictReader(csvfile))
+
+    keyList = csv_data[0].keys()
+
+    for element in keyList:
+        if element == 'DOMAIN' or element == 'NODE_ID':
+            continue
+        values = set(float(data[element]) for data in csv_data)
+        maximum = max(values)
+        minimum = min(values)
+        for data in csv_data:
+            data[element] = (float(data[element]) - minimum) / (maximum - minimum)
+
+    input_data = []
+    for data in csv_data:
+        element = []
+        if data['NODE_ID'] in nodes :
+            element.append(data['NODE_ID'])
+            for key in keyList:
+                if key == 'DOMAIN' or key == 'NODE_ID':
+                    continue
+                element.append(data[key])
+
+            input_data.append(element)
+
+    return input_data
+
 input_data = np.array(get_input_data('input_data.csv'))
 
 train_data = input_data[:-1000]
 test_data = input_data[-1000:]
 
-outputX = tf.placeholder('float', [None, 10])
+outputX = tf.placeholder('float', [None, 1])
 layer1 = AutoEncoder(17, 1000, tf.nn.sigmoid)
 layer2 = AutoEncoder(1000, 100, tf.nn.sigmoid, layer1)
 layer3 = AutoEncoder(100, 10, tf.nn.sigmoid, layer2)
@@ -364,6 +396,39 @@ decoder, input = mergeLayers(layers)
 #     a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
 #
 # plt.show()
+
+with open('Supervised_data.csv') as csvfile:
+    csv_data = list(csv.DictReader(csvfile))
+
+supervised_data = []
+for data in csv_data:
+    element = []
+    element.append(data['NODE_ID'])
+    element.append(float(data['RATING']))
+
+    supervised_data.append(element)
+
+nodes = [row[0] for row in supervised_data]
+
+supervised_input_data = get_selected_input_data('input_data.csv', nodes)
+
+supervised_input_data.sort(key=lambda x: x[0])
+supervised_data.sort(key=lambda x: x[0])
+
+supervised_input = [row[1:] for row in supervised_input_data]
+supervised_labels = [row[1:] for row in supervised_data]
+
+encoder_pt, inputX = finalLayer(layers)
+
+saver = tf.train.Saver()
+
+encoder = final_layer_train(encoder_pt, 10, 1, supervised_input[:256], supervised_labels[:256],inputX, 60)
+
+with tf.Session() as def_session:
+    def_session.run(tf.global_variables_initializer())
+    saver.restore(def_session, "/tmp/model.ckpt")
+    error = tf.reduce_mean(tf.pow(encoder - inputX, 2))
+    print(1-def_session.run(error, feed_dict={inputX:supervised_input[256:]}))
 
 with tf.Session() as def_session:
     error = tf.reduce_mean(tf.pow(decoder - input, 2))
