@@ -352,7 +352,7 @@ def get_selected_input_data(location, nodes):
 
     return input_data
 
-input_data = np.array(get_input_data('input_data.csv'))
+input_data = np.array(get_input_data('data/input_data.csv'))
 
 train_data = input_data[:-1000]
 test_data = input_data[-1000:]
@@ -370,9 +370,9 @@ examples_to_show = 10
 
 layers = []
 
-layers.append(layer1.unsupervised_train(train_data, 320))
-layers.append(layer2.unsupervised_train(train_data, 320))
-layers.append(layer3.unsupervised_train(train_data, 320))
+layers.append(layer1.unsupervised_train(train_data, 20))
+layers.append(layer2.unsupervised_train(train_data, 20))
+layers.append(layer3.unsupervised_train(train_data, 20))
 # layers.append(layer4.unsupervised_train(mnist.train.images, 320))
 # layers.append(layer5.unsupervised_train(mnist.train.images, 320))
 #layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
@@ -397,7 +397,7 @@ decoder, input = mergeLayers(layers)
 #
 # plt.show()
 
-with open('Supervised_data.csv') as csvfile:
+with open('data/Supervised_data.csv') as csvfile:
     csv_data = list(csv.DictReader(csvfile))
 
 supervised_data = []
@@ -410,7 +410,7 @@ for data in csv_data:
 
 nodes = [row[0] for row in supervised_data]
 
-supervised_input_data = get_selected_input_data('input_data.csv', nodes)
+supervised_input_data = get_selected_input_data('data/input_data.csv', nodes)
 
 supervised_input_data.sort(key=lambda x: x[0])
 supervised_data.sort(key=lambda x: x[0])
