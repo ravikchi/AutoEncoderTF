@@ -31,11 +31,13 @@ class Data:
         return self.input[cur_index:self.index], self.labels[cur_index:self.index]
 
 class AutoEncoder:
-    def __init__(self, id, input_size, hidden_size, act_func, inputX=None, sess=None, previous=None):
+    def __init__(self, id, input_size, hidden_size, act_func, inputX=None, sess=None, previous=None, learning_rate=0.01):
         self.id = id
 
         self.weight = tf.Variable(tf.random_normal([input_size, hidden_size]), name="weight_"+str(id))
         self.bias = tf.Variable(tf.random_normal([hidden_size]), name="bias_"+str(id))
+
+        self.act_func = act_func
 
         if inputX:
             self.inputX = inputX
@@ -56,38 +58,52 @@ class AutoEncoder:
 
         self.decoder = act_func(tf.add(tf.matmul(self.encoder, self.weight_d), self.bias_d))
 
-        self.saver = tf.train.Saver()
 
-    def output(self, data, batch_size):
-        input_data, output_data = data.next_batch(batch_size)
+        self.cost = tf.reduce_mean(tf.pow(self.inputX - self.decoder, 2))
+        self.optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(self.cost)
+
+    def output(self, input_data, output_data):
+        int_data = input_data
         if self.previous:
-            input_data = self.previous.output(input_data, self.tf_session)
-            input_data = self.tf_session.run(self.encoder, feed_dict={self.inputX:input_data})
+            int_data = self.previous.output(int_data, output_data)
 
-        return input_data, output_data
+        return self.sess.run(self.encoder, feed_dict={self.inputX:int_data}), output_data
 
-    def train(self, data, num_of_epoch=20, learning_rate=0.01, batch_size=256):
-
-        y_true = self.inputX
-        y_pred = self.decoder
-
-        cost = tf.reduce_mean(tf.pow(y_true-y_pred, 2))
-        optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
-
-        self.sess.run(tf.global_variables_initializer())
+    def train(self, data, num_of_epoch=2, batch_size=256):
 
         total_batches = int(data.size / batch_size)
 
         for epoch in range(num_of_epoch):
-
             for i in range(total_batches):
-                batch_xs, batch_ys = self.output(data, batch_size)
-                _,c = self.sess.run([optimizer, cost],feed_dict={self.inputX: batch_xs})
+                batch_xs, batch_ys = data.next_batch(batch_size)
+                if self.previous:
+                    batch_xs, batch_ys = self.previous.output(batch_xs, batch_ys)
+                _,c = self.sess.run([self.optimizer, self.cost],feed_dict={self.inputX: batch_xs})
 
             print(epoch)
             print(c)
 
-        self.saver.save(self.sess, "/tmp/my_model")
+def mergeLayers(layers):
+    graph = tf.get_default_graph()
+    input = layers[0].inputX
+    for i in range(len(layers)):
+        val = i+1
+        weight = graph.get_tensor_by_name("weight_"+str(val)+":0")
+        bias = graph.get_tensor_by_name("bias_"+str(val)+":0")
+
+        input = layers[i].act_func(tf.add(tf.matmul(input, weight), bias))
+
+    lentd = len(layers)
+    layers.reverse()
+    for i in range(len(layers)):
+        val = i
+        weight = tf.transpose(graph.get_tensor_by_name("weight_"+str(lentd-val)+":0"))
+        bias = graph.get_tensor_by_name("bias_d_"+str(lentd-val)+":0")
+
+        input = layers[i].act_func(tf.add(tf.matmul(input, weight), bias))
+
+    layers.reverse()
+    return input, layers[0].inputX
 
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
@@ -98,19 +114,26 @@ input_data = Data(mnist.train.images, mnist.train.labels)
 layers = []
 
 with tf.Session() as sess:
-    layer = AutoEncoder(1, 784, 256, tf.nn.sigmoid, sess=sess)
-    layers.append(layer)
-    layer.train(input_data)
-    layer = AutoEncoder(2, 256, 128, tf.nn.sigmoid, sess=sess, previous=layer)
-    layers.append(layer)
-    layer.train(input_data)
+    layers.append(AutoEncoder(1, 784, 256, tf.nn.sigmoid, sess=sess))
+    layers.append(AutoEncoder(2, 256, 128, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+    layers.append(AutoEncoder(3, 128, 64, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
 
-with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/my_model.meta")
-    saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
+
+    saver = tf.train.Saver()
+
+    for layer in layers:
+        layer.train(input_data, num_of_epoch=2)
+
+    saver.save(sess, "/tmp/my_model")
+    # sess.run(tf.global_variables_initializer())
+    # saver = tf.train.import_meta_graph("/tmp/my_model.meta")
+    # saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
+
+    decoder, inputX = mergeLayers(layers)
+
     encode_decode = sess.run(
-        layer.decoder, feed_dict={layer.inputX: mnist.test.images[:examples_to_show]})
+        decoder, feed_dict={inputX: mnist.test.images[:examples_to_show]})
 
         # for i in range(examples_to_show):
         #   print(mnist.test.labels[i])
