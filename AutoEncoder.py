@@ -1,95 +1,44 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-import time
-import csv
 
 
-from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
+class RMSCost:
+    def __init__(self, y_true, y_pred):
+        self.y_true = y_true
+        self.y_pred = y_pred
 
-min_error = 0.000001
+        self.cost = tf.reduce_mean(tf.pow(self.y_true - self.y_pred, 2))
 
-class AutoEncoder:
-    def __init__(self, input_size, hidden_size, activation_function, previous=None, outputX=None, inputX=None, corrfac=0.1):
-        self.input_size = input_size
-        self.hidden_size = hidden_size
 
-        self.tf_session = None
+class Data:
+    def __init__(self, input, labels):
+        self.input = input
+        self.labels = labels
+        self.index = 0
+        self.size = len(input)
 
-        self.corrfac = corrfac
+    def inp_size(self):
+        return len(self.input[0])
 
-        self.weight_e = tf.Variable(tf.random_normal([input_size, hidden_size]))
-        self.bias_e = tf.Variable(tf.random_normal([hidden_size]))
+    def next_batch(self, batchSize):
+        cur_index = self.index
+        if self.index == len(self.input):
+            self.index = 0
+            cur_index = self.index
 
-        if previous:
-            self.previous = previous
+        if (self.index + batchSize) > len(self.input):
+            self.index = len(self.input)
         else:
-            self.previous = None
+            self.index += batchSize
 
-        if inputX:
-            self.inputX = inputX
-        else:
-            self.inputX = tf.placeholder('float', [None, input_size])
+        return self.input[cur_index:self.index], self.labels[cur_index:self.index]
 
-        if outputX!= None :
-            self.outputX = outputX
-        else:
-            self.outputX = self.inputX
 
-        self.activation_function = activation_function
-
-        self.encoder = activation_function(tf.add(tf.matmul(self.inputX, self.weight_e), self.bias_e))
-
-        self.weight_d = tf.transpose(self.weight_e)
-        self.bias_d = tf.Variable(tf.random_normal([input_size]))
-
-        self.decoder = activation_function(tf.add(tf.matmul(self.encoder, self.weight_d), self.bias_d))
-
-    def set_weights_biases(self, weight_e, bias_e, bias_d, inputX=None):
-        self.weight_e = weight_e
-        self.weight_d = tf.transpose(weight_e)
-        self.bias_e = bias_e
-        self.bias_d = bias_d
-        if inputX:
-            self.encoder = self.activation_function(tf.add(tf.matmul(inputX, self.weight_e), self.bias_e))
-        else:
-            self.encoder = self.activation_function(tf.add(tf.matmul(self.inputX, self.weight_e), self.bias_e))
-
-        self.decoder = self.activation_function(tf.add(tf.matmul(self.encoder, self.weight_d), self.bias_d))
-
-    def get_trained_values(self, inputX=None):
-        act_weight_e = tf.constant(self.tf_session.run(self.weight_e))
-        act_bias_e = tf.constant(self.tf_session.run(self.bias_e))
-
-        act_bias_d = tf.constant(self.tf_session.run(self.bias_d))
-
-        act_auto_encoder = AutoEncoder(self.input_size, self.hidden_size, self.activation_function, self.previous)
-        act_auto_encoder.set_weights_biases(act_weight_e, act_bias_e, act_bias_d, inputX)
-
-        return act_auto_encoder
-
-    def set_constants(self, inputX=None):
-        self.weight_e = tf.constant(self.tf_session.run(self.weight_e))
-        self.bias_e = tf.constant(self.tf_session.run(self.bias_e))
-        if inputX:
-            self.inputX = inputX
-
-        self.encoder = self.activation_function(tf.add(tf.matmul(self.inputX, self.weight_e), self.bias_e))
-
-        self.weight_d = tf.constant(self.tf_session.run(self.weight_d))
-        self.bias_d = tf.constant(self.tf_session.run(self.bias_d))
-
-        self.decoder = self.activation_function(tf.add(tf.matmul(self.encoder, self.weight_d), self.bias_d))
-
-    def output(self, input_data, session=None):
-        if session:
-            self.tf_session = session
-
-        if self.previous:
-            input_data = self.previous.output(input_data, self.tf_session)
-
-        return self.tf_session.run(self.encoder, feed_dict={self.inputX:input_data})
+class Denoising(Data):
+    def __init__(self, input, labels, corruption_ratio):
+        Data.__init__(self, input, labels)
+        self.corrfac = corruption_ratio
 
     def salt_and_pepper_noise(self, X, v):
         if(np.random.random() > self.corrfac):
@@ -113,324 +62,191 @@ class AutoEncoder:
 
         return X_noise
 
-    def unsupervised_train(self, training_data, training_epochs=20, output_data = [], learning_rate=0.01, display_steps=10, batch_size=256):
-        val_size = int(len(training_data)/10)
-        input_data = training_data[:-val_size]
-        validation_data = training_data[-val_size:]
+    def next_batch(self, batchSize):
+        cur_index = self.index
+        if self.index == len(self.input):
+            self.index = 0
+            cur_index = self.index
 
-        print(len(output_data))
-        if len(output_data) == 0:
-            y_pred = self.decoder
+        if (self.index + batchSize) > len(self.input):
+            self.index = len(self.input)
         else:
-            y_pred = self.encoder
-        y_true = self.outputX
+            self.index += batchSize
 
-        cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-        optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
+        corruption_ratio = np.round(self.corrfac * input_data.shape[1]).astype(np.int)
 
-        with tf.Session() as self.tf_session:
+        output = self.salt_and_pepper_noise(self.input[cur_index:self.index], corruption_ratio)
 
-            input_size = len(input_data)
-            self.tf_session.run(tf.global_variables_initializer())
-            total_batch = int(input_size / batch_size)
-
-            old_validation_error = 10000
-            validation_count = 0
-            for epoch in range(training_epochs):
-                start = time.time()
-                count = 0
-                cst = 0.0
-
-                corruption_ratio = np.round(self.corrfac * input_data.shape[1]).astype(np.int)
-
-                for i in range(total_batch):
-                    end = count + batch_size
-                    if end > input_size:
-                        end = input_size
+        return output, self.labels[cur_index:self.index]
 
 
-                    if self.previous:
-                        batch_xs = self.salt_and_pepper_noise(self.previous.output(input_data[count:end], self.tf_session), corruption_ratio)
-                    else:
-                        batch_xs = self.salt_and_pepper_noise(input_data[count:end], corruption_ratio)
+class AutoEncoder:
+    def __init__(self, id, input_size, hidden_size, act_func, inputX=None, sess=None, previous=None,
+                 learning_rate=0.01, supervised=False, previous_graph=None):
+        self.id = id
 
-                    if len(output_data) == 0:
-                        if self.previous:
-                            batch_ys = self.previous.output(input_data[count:end], self.tf_session)
-                        else:
-                            batch_ys = input_data[count:end]
-                    else:
-                        batch_ys = output_data[count:end]
+        self.weight = tf.Variable(tf.random_normal([input_size, hidden_size]), name="weight_" + str(id))
+        self.bias = tf.Variable(tf.random_normal([hidden_size]), name="bias_" + str(id))
 
-                    _, c = self.tf_session.run([optimizer, cost],
-                                               feed_dict={self.inputX: batch_xs, self.outputX: batch_ys})
-                    cst = cst + c
-                    count = end
+        self.act_func = act_func
 
-                cst = cst / total_batch
-                if cst < min_error:
-                    break
+        if inputX is not None:
+            self.inputX = inputX
+        else:
+            self.inputX = tf.placeholder('float', [None, input_size])
 
+        self.outputX = tf.placeholder('float', [None, hidden_size])
+
+        if previous:
+            self.previous = previous
+        else:
+            self.previous = None
+
+        if previous_graph is not None:
+            self.encoder = self.act_func(tf.add(tf.matmul(previous_graph, self.weight), self.bias))
+        else:
+            self.encoder = self.act_func(tf.add(tf.matmul(self.inputX, self.weight), self.bias))
+
+        self.sess = sess
+
+        self.weight_d = tf.transpose(self.weight)
+        self.bias_d = tf.Variable(tf.random_normal([input_size]), name="bias_d_" + str(id))
+
+        self.decoder = act_func(tf.add(tf.matmul(self.encoder, self.weight_d), self.bias_d))
+
+        self.supervised = supervised
+
+        if self.supervised :
+            self.cost = tf.reduce_mean(tf.pow(self.outputX - self.encoder, 2))
+        else:
+            self.cost = tf.reduce_mean(tf.pow(self.inputX - self.decoder, 2))
+
+        self.optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(self.cost)
+
+    def output(self, i_data, output_data):
+        if self.previous:
+            i_data, output_data = self.previous.output(i_data, output_data)
+
+        return self.sess.run(self.encoder, feed_dict={self.inputX: i_data}), output_data
+
+    def train(self, data, num_of_epoch=2, batch_size=256):
+
+        total_batches = int(data.size / batch_size)
+
+        for epoch in range(num_of_epoch):
+            for i in range(total_batches):
+                batch_xs, batch_ys = data.next_batch(batch_size)
                 if self.previous:
-                    batch_xs = self.previous.output(validation_data, self.tf_session)
+                    batch_xs, batch_ys = self.previous.output(batch_xs, batch_ys)
+
+                if self.supervised :
+                    _, c = self.sess.run([self.optimizer, self.cost], feed_dict={self.inputX: batch_xs, self.outputX:batch_ys})
                 else:
-                    batch_xs = validation_data
+                    _, c = self.sess.run([self.optimizer, self.cost], feed_dict={self.inputX: batch_xs})
 
-                if len(output_data) == 0:
-                    if self.previous:
-                        batch_ys = self.previous.output(validation_data, self.tf_session)
-                    else:
-                        batch_ys = validation_data
-                else:
-                    batch_ys = validation_data
+            if epoch % 10:
+                print(epoch)
+                print(c)
 
-                validation_error = self.tf_session.run(cost, feed_dict={self.inputX:batch_xs, self.outputX:batch_ys})
-
-                if validation_error > old_validation_error:
-                    if validation_count > 100:
-                        break
-                    else:
-                        validation_count+=1
-                else:
-                    old_validation_error = validation_error
-                    validation_count = 0
+        print("Finished "+str(self.id))
 
 
-                if epoch % display_steps == 0:
-                    print("Epoch:", '%04d' % (epoch + 1),
-                          "validation cost=", "{:.9f}".format(c))
+def mergeLayers(size, input_size):
+    graph = tf.get_default_graph()
+    inputX = tf.placeholder('float', [None, input_size])
+    input = inputX
+    for i in range(size):
+        val = i
+        weight = graph.get_tensor_by_name("weight_" + str(val) + ":0")
+        bias = graph.get_tensor_by_name("bias_" + str(val) + ":0")
 
-                end = time.time()
-                if epoch % display_steps == 0:
-                    print("Epoch:", '%04d' % (epoch + 1),
-                          "cost=", "{:.9f}".format(cst))
-                    print('epoch took {}'.format((end - start) * 1000))
+        input = tf.nn.sigmoid(tf.add(tf.matmul(input, weight), bias))
 
+    for i in range(size):
+        val = i + 1
+        weight = tf.transpose(graph.get_tensor_by_name("weight_" + str(size - val) + ":0"))
+        bias = graph.get_tensor_by_name("bias_d_" + str(size - val) + ":0")
 
-            print("Optimization Finished!")
+        input = tf.nn.sigmoid(tf.add(tf.matmul(input, weight), bias))
 
-            self.set_constants()
+    return input, inputX
 
-            return self
+def get_encoder(size, input_size):
+    graph = tf.get_default_graph()
+    inputX = tf.placeholder('float', [None, input_size])
+    input = inputX
+    for i in range(size):
+        val = i
+        weight = graph.get_tensor_by_name("weight_" + str(val) + ":0")
+        bias = graph.get_tensor_by_name("bias_" + str(val) + ":0")
 
-def mergeLayers(layers):
-    inputX = layers[0].inputX
-    for layer in layers:
-        inputX = layer.activation_function(tf.add(tf.matmul(inputX, layer.weight_e), layer.bias_e))
+        input = tf.nn.sigmoid(tf.add(tf.matmul(input, weight), bias))
 
-    layers.reverse()
-
-    output = inputX
-    for layer in layers:
-        output = layer.activation_function(tf.add(tf.matmul(output, layer.weight_d), layer.bias_d))
-
-    layers.reverse()
-    return output, layers[0].inputX
-
-def getEncoder(layers):
-    inputX = layers[0].inputX
-    for layer in layers:
-        inputX = layer.activation_function(tf.add(tf.matmul(inputX, layer.weight_e), layer.bias_e))
-
-
-    return inputX, layers[0].inputX
+    return input, inputX
 
 def finalLayer(layers):
-    inputX = layers[0].inputX
+    input = layers[0].inputX
     for layer in layers:
-        weight = tf.Variable(layer.weight_e)
-        bias = tf.Variable(layer.bias_e)
-        inputX = layer.activation_function(tf.add(tf.matmul(inputX, weight), bias))
+        input = layer.act_func(tf.add(tf.matmul(input, layer.weight), layer.bias))
 
-    return inputX, layers[0].inputX
-
-def final_layer_train(encoder_pt, input_count, hidden_size, input_data, output_data, inputX, training_epochs=20, learning_rate=0.01, display_steps=10, batch_size=256):
-    weight = tf.Variable(tf.random_normal([input_count, hidden_size]))
-    bias = tf.Variable(tf.random_normal([hidden_size]))
-
-    encoder = tf.nn.sigmoid(tf.add(tf.matmul(encoder_pt, weight), bias))
-
-    y_true = outputX
-    y_pred = encoder
-
-    cost = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-    optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(cost)
-
-    input_size =len(input_data)
-
-    with tf.Session() as def_session:
-        def_session.run(tf.global_variables_initializer())
-        for epoch in range(training_epochs):
-            total_batch = int(input_size / batch_size)
-            count = 0
-            cst = 0.0
-            for i in range(total_batch):
-                end = count + batch_size
-                if end > input_size:
-                    end = input_size
-
-                batch_xs = input_data[count:end]
-                batch_ys = output_data[count:end]
-
-                _, c = def_session.run([optimizer, cost],
-                                       feed_dict={inputX: batch_xs, outputX: batch_ys})
-
-                cst += c
-                count = end
-            cst = cst / total_batch
-            if cst < min_error:
-                break
-
-            if epoch % display_steps == 0:
-                print("Epoch:", '%04d' % (epoch + 1),
-                      "cost=", "{:.9f}".format(cst))
-
-        print("Optimization Finished!")
-
-        saver.save(def_session, "/tmp/model.ckpt")
-
-        # correct_prediction = tf.equal(tf.argmax(encoder, 1), tf.argmax(outputX, 1))
-        # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        # print(def_session.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
-
-    return encoder
+    return input, layers[0].inputX
 
 
-def get_input_data(location):
-    with open(location) as csvfile:
-        csv_data = list(csv.DictReader(csvfile))
+from tensorflow.examples.tutorials.mnist import input_data
 
-    keyList = csv_data[0].keys()
-
-    for element in keyList:
-        if element == 'DOMAIN' or element == 'NODE_ID':
-            continue
-        values = set(float(data[element]) for data in csv_data)
-        maximum = max(values)
-        minimum = min(values)
-        for data in csv_data:
-            data[element] = (float(data[element]) - minimum) / (maximum - minimum)
-
-    input_data = []
-    for data in csv_data:
-        element = []
-        for key in keyList:
-            if key == 'DOMAIN' or key == 'NODE_ID':
-                continue
-            element.append(data[key])
-
-        input_data.append(element)
-
-    return input_data
-
-def get_selected_input_data(location, nodes):
-    with open(location) as csvfile:
-        csv_data = list(csv.DictReader(csvfile))
-
-    keyList = csv_data[0].keys()
-
-    for element in keyList:
-        if element == 'DOMAIN' or element == 'NODE_ID':
-            continue
-        values = set(float(data[element]) for data in csv_data)
-        maximum = max(values)
-        minimum = min(values)
-        for data in csv_data:
-            data[element] = (float(data[element]) - minimum) / (maximum - minimum)
-
-    input_data = []
-    for data in csv_data:
-        element = []
-        if data['NODE_ID'] in nodes :
-            element.append(data['NODE_ID'])
-            for key in keyList:
-                if key == 'DOMAIN' or key == 'NODE_ID':
-                    continue
-                element.append(data[key])
-
-            input_data.append(element)
-
-    return input_data
-
-input_data = np.array(get_input_data('data/input_data.csv'))
-
-train_data = input_data[:-1000]
-test_data = input_data[-1000:]
-
-outputX = tf.placeholder('float', [None, 1])
-layer1 = AutoEncoder(17, 1000, tf.nn.sigmoid)
-layer2 = AutoEncoder(1000, 100, tf.nn.sigmoid, layer1)
-layer3 = AutoEncoder(100, 10, tf.nn.sigmoid, layer2)
-# layer4 = AutoEncoder(512, 256, tf.nn.sigmoid, layer3)
-# layer5 = AutoEncoder(256, 128, tf.nn.sigmoid, layer4)
-#layer4 = AutoEncoder(128, 10, tf.nn.sigmoid, layer3, outputX)
-
+mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
 examples_to_show = 10
 
+input_data = Data(mnist.train.images, mnist.train.labels)
 layers = []
+sizes = [256,256,128,64]
 
-layers.append(layer1.unsupervised_train(train_data, 20))
-layers.append(layer2.unsupervised_train(train_data, 20))
-layers.append(layer3.unsupervised_train(train_data, 20))
-# layers.append(layer4.unsupervised_train(mnist.train.images, 320))
-# layers.append(layer5.unsupervised_train(mnist.train.images, 320))
-#layers.append(layer4.unsupervised_train(mnist.train.images, 320, mnist.train.labels))
+with tf.Session() as sess:
+    input_size = input_data.inp_size()
 
-decoder, input = mergeLayers(layers)
+    for i in range(len(sizes)):
+        size = sizes[i]
+        if len(layers) == 0:
+            layers.append(AutoEncoder(i, input_size, size, tf.nn.sigmoid, sess=sess))
+        else:
+            layers.append(AutoEncoder(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
 
-#encoder, inputX = getEncoder(layers)
+        input_size = size
 
-# encoder_pt, inputX = finalLayer(layers)
-#
-# final_layer_train(encoder_pt, 128, 10, mnist.train.images, mnist.train.labels,inputX, 320)
-#
-#
-# with tf.Session() as def_session:
-#     def_session.run(tf.global_variables_initializer())
-#     encode_decode = def_session.run(decoder, feed_dict={input:mnist.test.images[:examples_to_show]})
-#
-# f, a = plt.subplots(2, 10, figsize=(10, 2))
-# for i in range(examples_to_show):
-#     a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
-#     a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
-#
-# plt.show()
+    encoder_pt, inputX = finalLayer(layers)
 
-with open('data/Supervised_data.csv') as csvfile:
-    csv_data = list(csv.DictReader(csvfile))
+    layers.append(AutoEncoder(len(sizes), input_size, 10, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
 
-supervised_data = []
-for data in csv_data:
-    element = []
-    element.append(data['NODE_ID'])
-    element.append(float(data['RATING']))
 
-    supervised_data.append(element)
+    sess.run(tf.global_variables_initializer())
 
-nodes = [row[0] for row in supervised_data]
+    saver = tf.train.Saver()
 
-supervised_input_data = get_selected_input_data('data/input_data.csv', nodes)
+    for layer in layers:
+        layer.train(input_data, num_of_epoch=6)
 
-supervised_input_data.sort(key=lambda x: x[0])
-supervised_data.sort(key=lambda x: x[0])
+    saver.save(sess, "/tmp/my_model")
 
-supervised_input = [row[1:] for row in supervised_input_data]
-supervised_labels = [row[1:] for row in supervised_data]
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    saver = tf.train.import_meta_graph("/tmp/my_model.meta")
+    saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
 
-encoder_pt, inputX = finalLayer(layers)
+    decoder, inputX = mergeLayers(len(sizes), input_data.inp_size())
 
-saver = tf.train.Saver()
+    encode_decode = sess.run(decoder, feed_dict={inputX: mnist.test.images[:examples_to_show]})
 
-encoder = final_layer_train(encoder_pt, 10, 1, supervised_input[:256], supervised_labels[:256],inputX, 60)
+    encoder, inputX = get_encoder(len(sizes)+1, input_data.inp_size())
+    outputX = tf.placeholder('float', [None, 10])
 
-with tf.Session() as def_session:
-    def_session.run(tf.global_variables_initializer())
-    saver.restore(def_session, "/tmp/model.ckpt")
-    error = tf.reduce_mean(tf.pow(encoder - inputX, 2))
-    print(1-def_session.run(error, feed_dict={inputX:supervised_input[256:]}))
+    correct_prediction = tf.equal(tf.argmax(encoder, 1), tf.argmax(outputX, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    print(sess.run(accuracy, feed_dict={inputX: mnist.test.images, outputX: mnist.test.labels}))
 
-with tf.Session() as def_session:
-    error = tf.reduce_mean(tf.pow(decoder - input, 2))
+    f, a = plt.subplots(2, 10, figsize=(10, 2))
+    for i in range(examples_to_show):
+        a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
+        a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
 
-    print(1-def_session.run(error, feed_dict={input: test_data}))
+    plt.show()
