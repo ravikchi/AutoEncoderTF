@@ -33,7 +33,7 @@ examples_to_show = 10
 
 input_data = Data(mnist.train.images, mnist.train.labels)
 layers = []
-sizes = [256]
+sizes = [1024, 512, 256, 128]
 
 with tf.Session() as sess:
     input_size = input_data.inp_size()
@@ -52,7 +52,7 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers:
-        layer.train(input_data, num_of_epoch=2)
+        layer.train(input_data, num_of_epoch=40)
 
     saver.save(sess, "/tmp/my_model")
 
