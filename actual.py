@@ -56,16 +56,20 @@ def get_input_data(location):
             data[element] = (float(data[element]) - minimum) / (maximum - minimum)
 
     input_data = []
+    info_data = []
     for data in csv_data:
         element = []
+        info = []
         for key in keyList:
             if key == 'DOMAIN' or key == 'NODE_ID':
+                info.append(data[key])
                 continue
             element.append(data[key])
 
         input_data.append(element)
+        info_data.append(info)
 
-    return input_data
+    return input_data, info_data
 
 def get_encoder(size, input_size):
     graph = tf.get_default_graph()
@@ -80,10 +84,12 @@ def get_encoder(size, input_size):
 
     return input, inputX
 
-csv_data = np.array(get_input_data('data/input_data.csv'))
+first, second = get_input_data('data/input_data.csv')
+orig_csv_data = np.array(first)
+info_data = np.array(second)
 
-train_part = csv_data[:-1000]
-test_part = csv_data[-1000:]
+train_part = orig_csv_data[:-1000]
+test_part = orig_csv_data[-1000:]
 
 train_data = Data(train_part, train_part)
 test_data = Data(test_part, test_part)
@@ -115,32 +121,40 @@ supervised_data = Data(supervised_input[:256], supervised_labels[:256])
 layers = []
 sizes = [1024, 512, 256, 128]
 
-with tf.Session() as sess:
-    input_size = train_data.inp_size()
+# with tf.Session() as sess:
+#     input_size = train_data.inp_size()
+#
+#     for i in range(len(sizes)):
+#         size = sizes[i]
+#         if len(layers) == 0:
+#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
+#         else:
+#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+#
+#         input_size = size
+#
+#     encoder_pt, inputX = finalLayer(layers)
+#
+#     layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
+#
+#     sess.run(tf.global_variables_initializer())
+#
+#     saver = tf.train.Saver()
+#
+#     for layer in layers[:-1]:
+#         layer.train(train_data, num_of_epoch=80)
+#
+#     layers[-1].train(supervised_data, num_of_epoch=20)
+#
+#     saver.save(sess, "/tmp/main_model")
 
-    for i in range(len(sizes)):
-        size = sizes[i]
-        if len(layers) == 0:
-            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
-        else:
-            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+domain_test = []
+domain_info = []
 
-        input_size = size
-
-    encoder_pt, inputX = finalLayer(layers)
-
-    layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
-
-    sess.run(tf.global_variables_initializer())
-
-    saver = tf.train.Saver()
-
-    for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=80)
-
-    layers[-1].train(supervised_data, num_of_epoch=20)
-
-    saver.save(sess, "/tmp/main_model")
+for i in range(len(info_data)):
+    if info_data[i][0] == 'Swindon':
+        domain_info.append(info_data[i])
+        domain_test.append(orig_csv_data[i])
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
@@ -151,3 +165,8 @@ with tf.Session() as sess:
 
     error = tf.reduce_mean(tf.pow(encoder - inputX, 2))
     print(1 - sess.run(error, feed_dict={inputX: supervised_input[256:]}))
+
+    oput = sess.run(encoder, feed_dict={inputX: domain_test})
+
+    for i in range(len(oput)):
+        print(str(domain_info[i][1]) +', '+ str(oput[i][0]))
