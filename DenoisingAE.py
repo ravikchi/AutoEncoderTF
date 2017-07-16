@@ -4,7 +4,7 @@ from AutoEncoder import AutoEncoder
 
 
 class Denoising(AutoEncoder):
-    def __init__(self, id, input_size, hidden_size, act_func, inputX=None, sess=None, previous=None, learning_rate=0.01, supervised=False, previous_graph=None, corrfac=0.1):
+    def __init__(self, id, input_size, hidden_size, act_func, inputX=None, sess=None, previous=None, learning_rate=0.01, supervised=False, previous_graph=None, corrfac=0.5):
         AutoEncoder.__init__(self, id, input_size, hidden_size, act_func, inputX, sess, previous, learning_rate, supervised, previous_graph)
 
         self.corrfac = corrfac

@@ -29,7 +29,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
-examples_to_show = 10
+examples_to_show = 20
 
 input_data = Data(mnist.train.images, mnist.train.labels)
 layers = []
@@ -52,9 +52,11 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers:
-        layer.train(input_data, num_of_epoch=40)
+        layer.train(input_data, num_of_epoch=80)
 
     saver.save(sess, "/tmp/my_model")
+
+start = 438
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
@@ -63,11 +65,11 @@ with tf.Session() as sess:
 
     decoder, inputX = mergeLayers(len(sizes), input_data.inp_size())
 
-    encode_decode = sess.run(decoder, feed_dict={inputX: mnist.test.images[:examples_to_show]})
+    encode_decode = sess.run(decoder, feed_dict={inputX: mnist.test.images[start:start+examples_to_show]})
 
-    f, a = plt.subplots(2, 10, figsize=(10, 2))
+    f, a = plt.subplots(2, 20, figsize=(20, 2))
     for i in range(examples_to_show):
-        a[0][i].imshow(np.reshape(mnist.test.images[i], (28, 28)))
+        a[0][i].imshow(np.reshape(mnist.test.images[i+start], (28, 28)))
         a[1][i].imshow(np.reshape(encode_decode[i], (28, 28)))
 
     plt.show()
