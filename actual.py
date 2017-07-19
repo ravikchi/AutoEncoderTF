@@ -121,38 +121,38 @@ supervised_data = Data(supervised_input[:256], supervised_labels[:256])
 layers = []
 sizes = [1024, 512, 256, 128]
 
-# with tf.Session() as sess:
-#     input_size = train_data.inp_size()
-#
-#     for i in range(len(sizes)):
-#         size = sizes[i]
-#         if len(layers) == 0:
-#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
-#         else:
-#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
-#
-#         input_size = size
-#
-#     encoder_pt, inputX = finalLayer(layers)
-#
-#     layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
-#
-#     sess.run(tf.global_variables_initializer())
-#
-#     saver = tf.train.Saver()
-#
-#     for layer in layers[:-1]:
-#         layer.train(train_data, num_of_epoch=80)
-#
-#     layers[-1].train(supervised_data, num_of_epoch=20)
-#
-#     saver.save(sess, "/tmp/main_model")
+with tf.Session() as sess:
+    input_size = train_data.inp_size()
+
+    for i in range(len(sizes)):
+        size = sizes[i]
+        if len(layers) == 0:
+            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
+        else:
+            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+
+        input_size = size
+
+    encoder_pt, inputX = finalLayer(layers)
+
+    layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
+
+    sess.run(tf.global_variables_initializer())
+
+    saver = tf.train.Saver()
+
+    for layer in layers[:-1]:
+        layer.train(train_data, num_of_epoch=80)
+
+    layers[-1].train(supervised_data, num_of_epoch=40)
+
+    saver.save(sess, "/tmp/main_model")
 
 domain_test = []
 domain_info = []
 
 for i in range(len(info_data)):
-    if info_data[i][0] == 'Swindon':
+    if info_data[i][0] == 'Colchester & Ipswich':
         domain_info.append(info_data[i])
         domain_test.append(orig_csv_data[i])
 
