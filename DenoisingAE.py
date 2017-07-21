@@ -59,7 +59,7 @@ class Denoising(AutoEncoder):
                 else:
                     _, c = self.sess.run([self.optimizer, self.cost], feed_dict={self.inputX: corrupted_xs, self.outputX:batch_xs})
 
-            if epoch % 10:
+            if epoch % 10 == 0:
                 print(epoch)
                 print(c)
 
