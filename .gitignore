@@ -5,3 +5,5 @@ train
 .ipynb_checkpoints
 MNIST_data
 data
+ratings
+maps
