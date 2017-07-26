@@ -1,7 +1,11 @@
 import csv
 import os
 
+allData = []
+
 for file in os.listdir("ratings"):
+    if file == 'AllRatings.csv':
+        continue
     filename = "ratings/"+file
     data = []
     with open(filename) as csvfile:
@@ -15,19 +19,16 @@ for file in os.listdir("ratings"):
 
     data.sort(key=lambda x:x[1], reverse=True)
 
-    total_batches = int(round(len(data)/7))
+    total_batches = int(round(len(data)/10))
 
     count = 1
-    val = 8
+    val = 10
     for row in data:
-        if row[1] > 0.1:
-            row[2] = 10
-        elif row[1] > 0.08:
-            row[2] = 9
-        else :
-            if count % total_batches == 0:
-                val = val -1
-            row[2] = val
+        if count % total_batches == 0:
+            val = val -1
+        row[2] = val
+
+        allData.append(row)
 
         count = count + 1
 
@@ -36,3 +37,8 @@ for file in os.listdir("ratings"):
     for item in data:
       thefile.write('{},{},{}\n'.format(item[0],item[1],item[2]))
 
+
+thefile = open('ratings/AllRatings.csv', 'w')
+thefile.write('NODE_ID,RATING,RANK\n')
+for item in allData:
+    thefile.write('{},{},{}\n'.format(item[0],item[1],item[2]))

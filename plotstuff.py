@@ -57,16 +57,17 @@ for i in range(len(csv_data)):
     data = csv_data[i]
     latitude = float(data['LAT'])
     longitude = float(data['LONGITUDE'])
-    if float(data['RATING']) > 0.08 :
+    if float(data['RATING']) > 0.8:
         goodLatList.append(latitude)
         goodLongList.append(longitude)
     else :
         latitudes.append(latitude)
         longitudes.append(longitude)
 
-gmap.scatter(goodLatList, goodLongList, '#F00000', size=500, marker=False)
+
 gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
+gmap.scatter(goodLatList, goodLongList, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/Coventry.html")
+gmap.draw("maps/SouthWestScotland.html")

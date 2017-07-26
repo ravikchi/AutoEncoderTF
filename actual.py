@@ -31,14 +31,17 @@ def mergeLayers(size, input_size):
 
     return input, inputX
 
-def get_input_data(location):
+def get_input_data(location, norm_ratings):
     with open(location) as csvfile:
         csv_data = list(csv.DictReader(csvfile))
 
     keyList = csv_data[0].keys()
 
     for element in keyList:
-        if element == 'DOMAIN' or element == 'NODE_ID' or element == 'RATING':
+        if element == 'DOMAIN' or element == 'NODE_ID':
+            continue
+
+        if element == 'RATING' and not norm_ratings:
             continue
         values = set(float(data[element]) for data in csv_data)
         maximum = max(values)
@@ -82,33 +85,31 @@ def get_encoder(size, input_size):
 
     return input, inputX
 
-first, second, third = get_input_data('data/input_data.csv')
+first, second, third = get_input_data('data/input_data.csv', False)
 orig_csv_data = np.array(first)
 domain_info = np.array(third)
 
 train_data = Data(orig_csv_data[:-1000], orig_csv_data[:-1000])
 test_data = Data(orig_csv_data[-1000:], orig_csv_data[-1000:])
 
-first, second, third = get_input_data('data/Supervised_data.csv')
+first, second, third = get_input_data('data/Supervised_data.csv', True)
 csv_data = np.array(first)
 output_data = np.array(second)
 
-supervised_train_data = Data(csv_data[:256], output_data[:256])
-supervised_test_data = Data(csv_data[256:], output_data[256:])
+
+supervised_train_data = Data(csv_data[:1000], output_data[:1000])
+supervised_test_data = Data(csv_data[1000:], output_data[1000:])
 
 domain_test_input = []
 domain_test_output = []
 for i in range(len(domain_info)):
     domain = domain_info[i]
-    if domain[0] == 'Swindon':
-        domain_test_input.append(orig_csv_data[i])
-        domain_test_output.append(domain)
-
-
+    domain_test_input.append(orig_csv_data[i])
+    domain_test_output.append(domain)
 
 
 layers = []
-sizes = [1024, 512, 256, 128]
+sizes = [100, 100, 50, 50]
 
 with tf.Session() as sess:
     input_size = train_data.inp_size()
@@ -131,15 +132,15 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=160)
+        layer.train(train_data, num_of_epoch=1000)
 
-    layers[-1].train(supervised_train_data, num_of_epoch=160)
+    layers[-1].train(supervised_train_data, num_of_epoch=800)
 
-    saver.save(sess, "/tmp/main_model1")
+    saver.save(sess, "/tmp/main_model5")
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/main_model1.meta")
+    saver = tf.train.import_meta_graph("/tmp/main_model5.meta")
     saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
@@ -155,4 +156,4 @@ with tf.Session() as sess:
     outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
 
     for i in range(len(outputs)):
-        print(str(domain_test_output[i][1])+', '+str(outputs[i]))
+        print(str(domain_test_output[i][1])+', '+str(outputs[i][0]))
