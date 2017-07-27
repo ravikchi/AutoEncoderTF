@@ -2,6 +2,7 @@ import csv
 import numpy as np
 from Data import Data
 from DenoisingAE import Denoising
+import random
 import tensorflow as tf
 
 def finalLayer(layers):
@@ -35,7 +36,7 @@ def get_input_data(location, norm_ratings):
     with open(location) as csvfile:
         csv_data = list(csv.DictReader(csvfile))
 
-    keyList = csv_data[0].keys()
+    keyList = ['NODE_ID','DOMAIN','EASTING','NORTHING','LAT','LONGITUDE','EXCHNORTHDIST','EXCHSOUTHDIST','EXCHEASTDIST','EXCHWESTDIST','MEANEXCHNODEDIST','MEDIANNODEDIST','MEANRESOURCEDIST','MEDIANRESOURCEDIST','NO_RESOURCES','TOTAL_TASK','TOTAL_TASKO','TOTAL_TASK_TIME','TOTAL_TASK_TIMEO','RATING']
 
     for element in keyList:
         if element == 'DOMAIN' or element == 'NODE_ID':
@@ -48,6 +49,8 @@ def get_input_data(location, norm_ratings):
         minimum = min(values)
         for data in csv_data:
             data[element] = (float(data[element]) - minimum) / (maximum - minimum)
+
+    random.shuffle(csv_data)
 
     input_data = []
     output_data = []
@@ -132,15 +135,15 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=1000)
+        layer.train(train_data, num_of_epoch=1500)
 
-    layers[-1].train(supervised_train_data, num_of_epoch=800)
+    layers[-1].train(supervised_train_data, num_of_epoch=1000)
 
-    saver.save(sess, "/tmp/main_model5")
+    saver.save(sess, "/tmp/trained_model")
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/main_model5.meta")
+    saver = tf.train.import_meta_graph("/tmp/trained_model.meta")
     saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
@@ -153,7 +156,6 @@ with tf.Session() as sess:
     error = tf.reduce_mean(tf.pow(encoder - inputX, 2))
     print(1 - sess.run(error, feed_dict={inputX: supervised_test_data.input}))
 
-    outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
-
-    for i in range(len(outputs)):
-        print(str(domain_test_output[i][1])+', '+str(outputs[i][0]))
+    for i in range(len(domain_test_output)):
+        outputs = sess.run(encoder, feed_dict={inputX: domain_test_input[i:i+1]})
+        print(str(domain_test_output[i][1])+', '+str(outputs[0][0]))
