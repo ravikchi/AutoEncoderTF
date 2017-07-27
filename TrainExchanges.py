@@ -114,32 +114,32 @@ for i in range(len(domain_info)):
 layers = []
 sizes = [100, 100, 50, 50]
 
-with tf.Session() as sess:
-    input_size = train_data.inp_size()
-
-    for i in range(len(sizes)):
-        size = sizes[i]
-        if len(layers) == 0:
-            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
-        else:
-            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
-
-        input_size = size
-
-    encoder_pt, inputX = finalLayer(layers)
-
-    layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
-
-    sess.run(tf.global_variables_initializer())
-
-    saver = tf.train.Saver()
-
-    for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=1500)
-
-    layers[-1].train(supervised_train_data, num_of_epoch=1000)
-
-    saver.save(sess, "/tmp/trained_model")
+# with tf.Session() as sess:
+#     input_size = train_data.inp_size()
+#
+#     for i in range(len(sizes)):
+#         size = sizes[i]
+#         if len(layers) == 0:
+#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
+#         else:
+#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+#
+#         input_size = size
+#
+#     encoder_pt, inputX = finalLayer(layers)
+#
+#     layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
+#
+#     sess.run(tf.global_variables_initializer())
+#
+#     saver = tf.train.Saver()
+#
+#     for layer in layers[:-1]:
+#         layer.train(train_data, num_of_epoch=1500)
+#
+#     layers[-1].train(supervised_train_data, num_of_epoch=1000)
+#
+#     saver.save(sess, "/tmp/trained_model")
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())

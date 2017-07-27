@@ -33,14 +33,14 @@ for data in csv_data:
 
 minDist = 100000000000000000000
 finalI = 0
-# for i in range(len(latitudes)):
-#     lati = 0.0
-#     for j in range(len(latitudes)):
-#         lati = lati + getDistance(latitudes[i], longitudes[i], latitudes[j], longitudes[j])
-#
-#     if lati < minDist :
-#         minDist = lati
-#         finalI = i
+for i in range(len(latitudes)):
+    lati = 0.0
+    for j in range(len(latitudes)):
+        lati = lati + getDistance(latitudes[i], longitudes[i], latitudes[j], longitudes[j])
+
+    if lati < minDist :
+        minDist = lati
+        finalI = i
 
 gmap = gmplot.GoogleMapPlotter(latitudes[finalI], longitudes[finalI], 10)
 
@@ -57,17 +57,17 @@ for i in range(len(csv_data)):
     data = csv_data[i]
     latitude = float(data['LAT'])
     longitude = float(data['LONGITUDE'])
-    if float(data['RATING']) > 0.8:
+    if float(data['RATING']) > 0.6:
         goodLatList.append(latitude)
         goodLongList.append(longitude)
-#     else :
-#         latitudes.append(latitude)
-#         longitudes.append(longitude)
-#
-#
-# gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
+    else :
+        latitudes.append(latitude)
+        longitudes.append(longitude)
+
+
+gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
 gmap.scatter(goodLatList, goodLongList, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/UKAll1.html")
+gmap.draw("maps/North London.html")
