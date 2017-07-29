@@ -18,6 +18,7 @@ class ValidDenoising(Denoising):
         corruption_ratio = np.round(self.corrfac * data.input.shape[1]).astype(np.int)
 
         old_val_c = 1000000
+        val_count = 0
 
         for epoch in range(num_of_epoch):
             cost = 0.0
@@ -58,7 +59,13 @@ class ValidDenoising(Denoising):
 
                 old_val_c = val_c
 
-            if cost < 0.0000001:
+                val_count = 0
+            elif val_count > 100 :
+                break
+            else :
+                val_count = val_count + 1
+
+            if cost < 0.000001:
                 break
 
         self.weight = self.validation_weight

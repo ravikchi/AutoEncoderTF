@@ -5,9 +5,9 @@ class Validation(Data):
         Data.__init__(self, input, labels)
         self.validSize = int(self.size * validSize)
         self.input = input[:-self.validSize]
-        self.labels = input[:-self.validSize]
+        self.labels = labels[:-self.validSize]
         self.validInput = input[-self.validSize:]
-        self.validLabels = input[-self.validSize:]
+        self.validLabels = labels[-self.validSize:]
         self.valIndex = 0
 
     def next_validation_batch(self, batchSize):
