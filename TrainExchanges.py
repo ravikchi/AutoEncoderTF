@@ -114,36 +114,38 @@ for i in range(len(domain_info)):
 layers = []
 sizes = [100, 100, 50, 50]
 
-# with tf.Session() as sess:
-#     input_size = train_data.inp_size()
-#
-#     for i in range(len(sizes)):
-#         size = sizes[i]
-#         if len(layers) == 0:
-#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
-#         else:
-#             layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
-#
-#         input_size = size
-#
-#     encoder_pt, inputX = finalLayer(layers)
-#
-#     layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
-#
-#     sess.run(tf.global_variables_initializer())
-#
-#     saver = tf.train.Saver()
-#
-#     for layer in layers[:-1]:
-#         layer.train(train_data, num_of_epoch=1500)
-#
-#     layers[-1].train(supervised_train_data, num_of_epoch=1000)
-#
-#     saver.save(sess, "/tmp/trained_model")
+with tf.Session() as sess:
+    input_size = train_data.inp_size()
+
+    for i in range(len(sizes)):
+        size = sizes[i]
+        if len(layers) == 0:
+            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
+        else:
+            layers.append(Denoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+
+        input_size = size
+
+    encoder_pt, inputX = finalLayer(layers)
+
+    layers.append(Denoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
+
+    sess.run(tf.global_variables_initializer())
+
+    saver = tf.train.Saver()
+
+    for layer in layers[:-1]:
+        layer.train(train_data, num_of_epoch=2000)
+
+    layers[-1].train(supervised_train_data, num_of_epoch=3000)
+
+    saver.save(sess, "/tmp/trained_model1")
+
+outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/trained_model.meta")
+    saver = tf.train.import_meta_graph("/tmp/trained_model1.meta")
     saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
@@ -156,6 +158,9 @@ with tf.Session() as sess:
     error = tf.reduce_mean(tf.pow(encoder - inputX, 2))
     print(1 - sess.run(error, feed_dict={inputX: supervised_test_data.input}))
 
-    for i in range(len(domain_test_output)):
-        outputs = sess.run(encoder, feed_dict={inputX: domain_test_input[i:i+1]})
-        print(str(domain_test_output[i][1])+', '+str(outputs[0][0]))
+    outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
+
+thefile = open('data/output.csv', 'w')
+thefile.write("NODE_ID,RATING\n")
+for i in range(len(outputs)):
+  thefile.write("{},{}\n".format(domain_test_output[i][1], outputs[i][0]))

@@ -7,3 +7,4 @@ MNIST_data
 data
 ratings
 maps
+__pycache__

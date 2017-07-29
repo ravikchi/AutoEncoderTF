@@ -47,6 +47,7 @@ class Denoising(AutoEncoder):
         corruption_ratio = np.round(self.corrfac * data.input.shape[1]).astype(np.int)
 
         for epoch in range(num_of_epoch):
+            cost = 0.0
             for i in range(total_batches):
                 batch_xs, batch_ys = data.next_batch(batch_size)
                 if self.previous:
@@ -59,8 +60,14 @@ class Denoising(AutoEncoder):
                 else:
                     _, c = self.sess.run([self.optimizer, self.cost], feed_dict={self.inputX: corrupted_xs, self.outputX:batch_xs})
 
-            if epoch % 10 == 0:
+                cost = cost + c
+
+            cost = cost/total_batches
+            if epoch % 100 == 0:
                 print(epoch)
-                print(c)
+                print(cost)
+
+            if cost < 0.0000001:
+                break
 
         print("Finished "+str(self.id))
