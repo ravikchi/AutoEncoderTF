@@ -136,9 +136,9 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=10000)
+        layer.train(train_data, num_of_epoch=15000)
 
-    layers[-1].train(supervised_train_data, num_of_epoch=10000)
+    layers[-1].train(supervised_train_data, num_of_epoch=15000)
 
     saver.save(sess, "/tmp/trained_model1")
 

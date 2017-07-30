@@ -60,7 +60,7 @@ class ValidDenoising(Denoising):
                 old_val_c = val_c
 
                 val_count = 0
-            elif val_count > 100 :
+            elif val_count > 500 :
                 break
             else :
                 val_count = val_count + 1
