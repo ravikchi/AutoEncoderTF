@@ -5,6 +5,7 @@ from ValidDenoising import ValidDenoising
 from Data import Data
 import random
 import tensorflow as tf
+import copy
 
 def finalLayer(layers):
     input = layers[0].inputX
@@ -41,10 +42,10 @@ def get_input_data(location, norm_ratings):
 
     keyList = ['NODE_ID','DOMAIN','EASTING','NORTHING','LAT','LONGITUDE','EXCHNORTHDIST','EXCHSOUTHDIST','EXCHEASTDIST','EXCHWESTDIST','MEANEXCHNODEDIST','MEDIANNODEDIST','MEANRESOURCEDIST','MEDIANRESOURCEDIST','NO_RESOURCES','TOTAL_TASK','TOTAL_TASKO','TOTAL_TASK_TIME','TOTAL_TASK_TIMEO','RATING']
 
-    original_data = csv_data[:]
+    original_data = copy.deepcopy(csv_data)
 
     for element in keyList:
-        if element == 'DOMAIN' or element == 'NODE_ID' or element == 'EASTING' or element == 'NORTHING' or element == 'LAT' or element == 'LONGITUDE':
+        if element == 'DOMAIN' or element == 'NODE_ID':# or element == 'EASTING' or element == 'NORTHING' or element == 'LAT' or element == 'LONGITUDE':
             continue
 
         if element == 'RATING' and not norm_ratings:
@@ -63,8 +64,9 @@ def get_input_data(location, norm_ratings):
         output = []
         info = [data['DOMAIN'], data['NODE_ID']]
         for key in keyList:
-            if key == 'DOMAIN' or key == 'NODE_ID' or key == 'EASTING' or key == 'NORTHING' or key == 'LAT' or key == 'LONGITUDE':
+            if key == 'DOMAIN' or key == 'NODE_ID':# or key == 'EASTING' or key == 'NORTHING' or key == 'LAT' or key == 'LONGITUDE':
                 continue
+
 
             if key == 'RATING':
                 output.append(data[key])
@@ -115,41 +117,41 @@ for i in range(len(domain_info)):
 
 
 layers = []
-sizes = [100, 75, 50, 25]
+sizes = [100, 100, 50, 50]
 
-with tf.Session() as sess:
-    input_size = train_data.inp_size()
-
-    for i in range(len(sizes)):
-        size = sizes[i]
-        if len(layers) == 0:
-            layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
-        else:
-            layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
-
-        input_size = size
-
-    encoder_pt, inputX = finalLayer(layers)
-
-    layers.append(ValidDenoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
-
-    sess.run(tf.global_variables_initializer())
-
-    saver = tf.train.Saver()
-
-    for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=15000)
-
-    layers[-1].train(supervised_train_data, num_of_epoch=15000)
-
-    saver.save(sess, "/tmp/trained_model3")
+# with tf.Session() as sess:
+#     input_size = train_data.inp_size()
+#
+#     for i in range(len(sizes)):
+#         size = sizes[i]
+#         if len(layers) == 0:
+#             layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
+#         else:
+#             layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+#
+#         input_size = size
+#
+#     encoder_pt, inputX = finalLayer(layers)
+#
+#     layers.append(ValidDenoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
+#
+#     sess.run(tf.global_variables_initializer())
+#
+#     saver = tf.train.Saver()
+#
+#     for layer in layers[:-1]:
+#         layer.train(train_data, num_of_epoch=15000)
+#
+#     layers[-1].train(supervised_train_data, num_of_epoch=15000)
+#
+#     saver.save(sess, "/tmp/trained_model3")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/trained_model3.meta")
-    saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
+    saver = tf.train.import_meta_graph("/tmp/trained_model.meta")
+    saver.restore(sess, '/tmp/trained_model')
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
 
@@ -163,7 +165,7 @@ with tf.Session() as sess:
 
     outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
 
-thefile = open('data/output.csv', 'w')
+thefile = open('data/output_model1.csv', 'w')
 thefile.write("NODE_ID,DOMAIN,EASTING,NORTHING,LAT,LONGITUDE,RATING\n")
 for i in range(len(outputs)):
   thefile.write("{},{},{}, {}, {},{},{}\n".format(domain_test_output[i][1], original_data[i]['DOMAIN'], original_data[i]['EASTING'], original_data[i]['NORTHING'], original_data[i]['LAT'], original_data[i]['LONGITUDE'], outputs[i][0]))

@@ -21,7 +21,7 @@ def getDistance(lat1, long1, lat2, long2):
 
     return distance
 
-with open("data/output  .csv") as csvfile:
+with open("data/output_model1.csv") as csvfile:
     csv_data = list(csv.DictReader(csvfile))
 
 latitudes = []
@@ -57,7 +57,7 @@ for i in range(len(csv_data)):
     data = csv_data[i]
     latitude = float(data['LAT'])
     longitude = float(data['LONGITUDE'])
-    if float(data['RATING']) > 0.8:
+    if float(data['RATING']) > 0.7:
         goodLatList.append(latitude)
         goodLongList.append(longitude)
 #     else :
@@ -70,4 +70,4 @@ gmap.scatter(goodLatList, goodLongList, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/UKAll2.html")
+gmap.draw("maps/UKAll6.html")
