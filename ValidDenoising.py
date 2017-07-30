@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from DenoisingAE import Denoising
+import time
 
 class ValidDenoising(Denoising):
     def __init__(self, id, input_size, hidden_size, act_func, inputX=None, sess=None, previous=None, learning_rate=0.01, supervised=False, previous_graph=None, corrfac=0.5):
@@ -20,6 +21,7 @@ class ValidDenoising(Denoising):
         old_val_c = 1000000
         val_count = 0
 
+        start = time.clock()
         for epoch in range(num_of_epoch):
             local_cost = 0.0
             for i in range(total_batches):
@@ -40,6 +42,9 @@ class ValidDenoising(Denoising):
             if epoch % 1000 == 0:
                 print(epoch)
                 print(local_cost)
+                print("Time Taken")
+                print(time.clock() - start)
+                start = time.clock()
 
             batch_xs = data.validInput
             batch_ys = data.validLabels
