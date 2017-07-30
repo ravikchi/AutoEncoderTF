@@ -21,7 +21,7 @@ def getDistance(lat1, long1, lat2, long2):
 
     return distance
 
-with open("data/RatingData.csv") as csvfile:
+with open("data/output  .csv") as csvfile:
     csv_data = list(csv.DictReader(csvfile))
 
 latitudes = []
