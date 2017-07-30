@@ -144,14 +144,14 @@ with tf.Session() as sess:
 
     layers[-1].train(supervised_train_data, num_of_epoch=15000)
 
-    saver.save(sess, "/tmp/trained_model4")
+    saver.save(sess, "tmp/trained_model4")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/trained_model4.meta")
-    saver.restore(sess, '/tmp/trained_model4')
+    saver = tf.train.import_meta_graph("tmp/trained_model4.meta")
+    saver.restore(sess, 'tmp/trained_model4')
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
 
