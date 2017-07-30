@@ -113,7 +113,7 @@ for i in range(len(domain_info)):
 
 
 layers = []
-sizes = [100, 100, 50, 50]
+sizes = [100, 75, 50, 25]
 
 with tf.Session() as sess:
     input_size = train_data.inp_size()
