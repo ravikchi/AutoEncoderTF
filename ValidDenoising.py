@@ -21,7 +21,7 @@ class ValidDenoising(Denoising):
         old_val_c = 1000000
         val_count = 0
 
-        start = time.clock()
+        start = time.time()
         for epoch in range(num_of_epoch):
             local_cost = 0.0
             for i in range(total_batches):
@@ -43,8 +43,8 @@ class ValidDenoising(Denoising):
                 print(epoch)
                 print(local_cost)
                 print("Time Taken")
-                print(time.clock() - start)
-                start = time.clock()
+                print(time.time() - start)
+                start = time.time()
 
             batch_xs = data.validInput
             batch_ys = data.validLabels
