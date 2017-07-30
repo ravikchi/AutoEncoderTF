@@ -140,13 +140,13 @@ with tf.Session() as sess:
 
     layers[-1].train(supervised_train_data, num_of_epoch=15000)
 
-    saver.save(sess, "/tmp/trained_model1")
+    saver.save(sess, "/tmp/trained_model2")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("/tmp/trained_model1.meta")
+    saver = tf.train.import_meta_graph("/tmp/trained_model2.meta")
     saver.restore(sess, tf.train.latest_checkpoint('/tmp/'))
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())

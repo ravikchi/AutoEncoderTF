@@ -21,7 +21,7 @@ class ValidDenoising(Denoising):
         val_count = 0
 
         for epoch in range(num_of_epoch):
-            cost = 0.0
+            local_cost = 0.0
             for i in range(total_batches):
                 batch_xs, batch_ys = data.next_batch(batch_size)
                 if self.previous:
@@ -34,12 +34,12 @@ class ValidDenoising(Denoising):
                 else:
                     _, c = self.sess.run([self.optimizer, self.cost], feed_dict={self.inputX: corrupted_xs, self.outputX:batch_xs})
 
-                cost = cost + c
+                local_cost = local_cost + c
 
-            cost = cost/total_batches
-            if epoch % 100 == 0:
+            local_cost = local_cost/total_batches
+            if epoch % 1000 == 0:
                 print(epoch)
-                print(cost)
+                print(local_cost)
 
             batch_xs = data.validInput
             batch_ys = data.validLabels
@@ -61,11 +61,13 @@ class ValidDenoising(Denoising):
 
                 val_count = 0
             elif val_count > 500 :
+                print("validation early stop")
                 break
             else :
                 val_count = val_count + 1
 
-            if cost < 0.000001:
+            if local_cost < 0.000001:
+                print("minimum cost early stop")
                 break
 
         self.weight = self.validation_weight
