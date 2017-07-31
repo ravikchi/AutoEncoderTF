@@ -6,6 +6,7 @@ from Data import Data
 import random
 import tensorflow as tf
 import copy
+import PlotExchangeOnMap as pm
 
 def finalLayer(layers):
     input = layers[0].inputX
@@ -45,7 +46,7 @@ def get_input_data(location, norm_ratings):
     original_data = copy.deepcopy(csv_data)
 
     for element in keyList:
-        if element == 'DOMAIN' or element == 'NODE_ID':# or element == 'EASTING' or element == 'NORTHING' or element == 'LAT' or element == 'LONGITUDE':
+        if element == 'DOMAIN' or element == 'NODE_ID' or element == 'EASTING' or element == 'NORTHING' or element == 'LAT' or element == 'LONGITUDE':
             continue
 
         if element == 'RATING' and not norm_ratings:
@@ -64,7 +65,7 @@ def get_input_data(location, norm_ratings):
         output = []
         info = [data['DOMAIN'], data['NODE_ID']]
         for key in keyList:
-            if key == 'DOMAIN' or key == 'NODE_ID':# or key == 'EASTING' or key == 'NORTHING' or key == 'LAT' or key == 'LONGITUDE':
+            if key == 'DOMAIN' or key == 'NODE_ID' or key == 'EASTING' or key == 'NORTHING' or key == 'LAT' or key == 'LONGITUDE':
                 continue
 
 
@@ -92,6 +93,7 @@ def get_encoder(size, input_size):
         input = tf.nn.sigmoid(tf.add(tf.matmul(input, weight), bias))
 
     return input, inputX
+
 
 first, second, third, original_data = get_input_data('data/input_data.csv', False)
 orig_csv_data = np.array(first)
@@ -144,7 +146,7 @@ with tf.Session() as sess:
 
     layers[-1].train(supervised_train_data, num_of_epoch=15000)
 
-    saver.save(sess, "tmp/trained_model4")
+    saver.save(sess, "tmp/trained_model5")
 
 outputs = []
 
@@ -165,7 +167,10 @@ with tf.Session() as sess:
 
     outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
 
-thefile = open('data/output_model4.csv', 'w')
+file_name = "data/output_model4.csv"
+
+thefile = open(file_name, 'w')
 thefile.write("NODE_ID,DOMAIN,EASTING,NORTHING,LAT,LONGITUDE,RATING\n")
 for i in range(len(outputs)):
   thefile.write("{},{},{}, {}, {},{},{}\n".format(domain_test_output[i][1], original_data[i]['DOMAIN'], original_data[i]['EASTING'], original_data[i]['NORTHING'], original_data[i]['LAT'], original_data[i]['LONGITUDE'], outputs[i][0]))
+
