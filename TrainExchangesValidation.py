@@ -6,7 +6,6 @@ from Data import Data
 import random
 import tensorflow as tf
 import copy
-import PlotExchangeOnMap as pm
 
 def finalLayer(layers):
     input = layers[0].inputX
@@ -41,7 +40,7 @@ def get_input_data(location, norm_ratings):
 
     random.shuffle(csv_data)
 
-    keyList = ['NODE_ID','DOMAIN','EASTING','NORTHING','LAT','LONGITUDE','EXCHNORTHDIST','EXCHSOUTHDIST','EXCHEASTDIST','EXCHWESTDIST','MEANEXCHNODEDIST','MEDIANNODEDIST','MEANRESOURCEDIST','MEDIANRESOURCEDIST','NO_RESOURCES','TOTAL_TASK','TOTAL_TASKO','TOTAL_TASK_TIME','TOTAL_TASK_TIMEO','RATING']
+    keyList = ['NODE_ID','DOMAIN','EASTING','NORTHING','LAT','LONGITUDE','EXCHNORTHDIST','EXCHSOUTHDIST','EXCHEASTDIST','EXCHWESTDIST','MEANEXCHNODEDIST','MEDIANNODEDIST','MEANRESOURCEDIST','MEDIANRESOURCEDIST','NO_RESOURCES','TOTAL_TASK','TOTAL_TASKO','TOTAL_TASK_TIME','TOTAL_TASK_TIMEO','NUM_NEIGHBOURS','RATING']
 
     original_data = copy.deepcopy(csv_data)
 
@@ -146,14 +145,14 @@ with tf.Session() as sess:
 
     layers[-1].train(supervised_train_data, num_of_epoch=15000)
 
-    saver.save(sess, "tmp/trained_model5")
+    saver.save(sess, "tmp/neighbour_model")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("tmp/trained_model4.meta")
-    saver.restore(sess, 'tmp/trained_model4')
+    saver = tf.train.import_meta_graph("tmp/neighbour_model.meta")
+    saver.restore(sess, 'tmp/neighbour_model')
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
 
@@ -167,10 +166,9 @@ with tf.Session() as sess:
 
     outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
 
-file_name = "data/output_model4.csv"
+file_name = "data/output_neighbour_model.csv"
 
 thefile = open(file_name, 'w')
 thefile.write("NODE_ID,DOMAIN,EASTING,NORTHING,LAT,LONGITUDE,RATING\n")
 for i in range(len(outputs)):
   thefile.write("{},{},{}, {}, {},{},{}\n".format(domain_test_output[i][1], original_data[i]['DOMAIN'], original_data[i]['EASTING'], original_data[i]['NORTHING'], original_data[i]['LAT'], original_data[i]['LONGITUDE'], outputs[i][0]))
-

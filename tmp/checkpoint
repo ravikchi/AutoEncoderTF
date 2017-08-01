@@ -1,2 +1,2 @@
-model_checkpoint_path: "trained_model5"
-all_model_checkpoint_paths: "trained_model5"
+model_checkpoint_path: "neighbour_model"
+all_model_checkpoint_paths: "neighbour_model"
