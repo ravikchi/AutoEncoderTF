@@ -53,20 +53,20 @@ longitudes = []
 
 for i in range(len(csv_data)):
     data = csv_data[i]
-    if data['DOMAIN'] == 'Broadlands':
-        latitude = float(data['LAT'])
-        longitude = float(data['LONGITUDE'])
-        if float(data['RATING']) > 0.8:
-            good_lat_list.append(latitude)
-            good_long_list.append(longitude)
-        else:
-            latitudes.append(latitude)
-            longitudes.append(longitude)
-
-
-gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
+    #if data['DOMAIN'] == 'Broadlands':
+    latitude = float(data['LAT'])
+    longitude = float(data['LONGITUDE'])
+    if float(data['RATING']) > 0.8:
+        good_lat_list.append(latitude)
+        good_long_list.append(longitude)
+#     else:
+#         latitudes.append(latitude)
+#         longitudes.append(longitude)
+#
+#
+# gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
 gmap.scatter(good_lat_list, good_long_list, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/Broadlands.html")
+gmap.draw("maps/ne_uk.html")
