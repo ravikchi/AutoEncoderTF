@@ -7,13 +7,6 @@ from keras import regularizers
 
 from keras.datasets import mnist
 
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-x_train = x_train.astype('float32') / 255.
-x_test = x_test.astype('float32') / 255.
-x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
-
 
 def getEncoders(layer_sizes, input_size):
     encoders = []
@@ -39,11 +32,10 @@ def getEncoders(layer_sizes, input_size):
         decoders.append(decoder)
         j -= 1
 
-
-
     return encoders, decoders
 
-def train_layer_wise(encoders, decoders, num_epochs=20):
+
+def train_layer_wise(encoders, decoders, x_train_local, y_train_local, x_test_local, y_test_local, num_epochs=20, batch_sz=256):
     decoders.reverse()
     for i in range(len(encoders)):
         model = Sequential()
@@ -75,22 +67,56 @@ def train_layer_wise(encoders, decoders, num_epochs=20):
             model.add(decoder)
 
         model.compile(optimizer='adam', loss='mse')
-        model.fit(x_train, x_train, epochs=num_epochs,
-                batch_size=256,
-                shuffle=True,
-                validation_data=(x_test, x_test))
+        model.fit(x_train_local, y_train_local, epochs=num_epochs,
+                  batch_size=batch_sz,
+                  shuffle=True,
+                  validation_data=(x_test_local, y_test_local))
+
+    decoders.reverse()
+    return model
+
+
+def train_all_layers(encoders, x_train_local, y_train_local, x_test_local, y_test_local, num_epochs=20, batch_sz=256):
+    model = Sequential()
+    for i in range(len(encoders)):
+        encoders[i].trainable = True
+        model.add(encoders[i])
+
+    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+    model.fit(x_train_local, y_train_local, epochs=num_epochs,
+              batch_size=batch_sz,
+              shuffle=True,
+              validation_data=(x_test_local, y_test_local))
 
     return model
 
 
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+x_train = x_train.astype('float32') / 255.
+x_test = x_test.astype('float32') / 255.
+x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+
 layer_sizes = [1024, 512, 256]
 
-encoders, decoders = getEncoders(layer_sizes, 784)
+encoder_list, decoder_list = getEncoders(layer_sizes, 784)
 
-model = train_layer_wise(encoders, decoders, num_epochs=2)
+trained_model = train_layer_wise(encoder_list, decoder_list, x_train, x_train, x_test, x_test, num_epochs=20)
 
+decoded_imgs = trained_model.predict(x_test)
 
-decoded_imgs = model.predict(x_test)
+encoder_list.append(Dense(1, activation='relu'))
+decoder_list.append(Dense(layer_sizes[-1], activation='relu'))
+
+greedy_model = train_all_layers(encoder_list, x_train, y_train, x_test, y_test, num_epochs=20)
+
+metrics = greedy_model.evaluate(x_test, y_test)
+
+print("\n")
+
+for i in range(len(greedy_model.metrics_names)):
+    print(str(greedy_model.metrics_names[i]) + ": " + str(metrics[i]))
 
 n = 10  # how many digits we will display
 plt.figure(figsize=(20, 4))
