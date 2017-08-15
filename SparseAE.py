@@ -7,6 +7,7 @@ from keras import regularizers
 
 from keras.datasets import mnist
 
+
 def getEncoders(layer_sizes, input_size):
     encoders = []
     decoders = []
@@ -89,10 +90,10 @@ def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, 
                   batch_size=256,
                   shuffle=True,
                   validation_data=(x_test_loc, y_test_loc))
-
     return model
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
 
 x_train = x_train.astype('float32') / 255.
 x_test = x_test.astype('float32') / 255.
