@@ -40,7 +40,7 @@ def get_input_data(location, norm_ratings):
 
     random.shuffle(csv_data)
 
-    keyList = ['NODE_ID','DOMAIN','EASTING','NORTHING','LAT','LONGITUDE','EXCHNORTHDIST','EXCHSOUTHDIST','EXCHEASTDIST','EXCHWESTDIST','MEANEXCHNODEDIST','MEDIANNODEDIST','MEANRESOURCEDIST','MEDIANRESOURCEDIST','NO_RESOURCES','TOTAL_TASK','TOTAL_TASKO','TOTAL_TASK_TIME','TOTAL_TASK_TIMEO','NUM_NEIGHBOURS','RATING']
+    keyList = ['NODE_ID','DOMAIN','EASTING','NORTHING','LAT','LONGITUDE','EXCHNORTHDIST','EXCHSOUTHDIST','EXCHEASTDIST','EXCHWESTDIST','MEANEXCHNODEDIST','MEDIANNODEDIST','MEANRESOURCEDIST','MEDIANRESOURCEDIST','NO_RESOURCES','TOTAL_TASK','TOTAL_TASKO','TOTAL_TASK_TIME','TOTAL_TASK_TIMEO','RATING']
 
     original_data = copy.deepcopy(csv_data)
 
@@ -120,39 +120,39 @@ for i in range(len(domain_info)):
 layers = []
 sizes = [100, 100, 50, 50]
 
-# with tf.Session() as sess:
-#     input_size = train_data.inp_size()
-#
-#     for i in range(len(sizes)):
-#         size = sizes[i]
-#         if len(layers) == 0:
-#             layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
-#         else:
-#             layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
-#
-#         input_size = size
-#
-#     encoder_pt, inputX = finalLayer(layers)
-#
-#     layers.append(ValidDenoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
-#
-#     sess.run(tf.global_variables_initializer())
-#
-#     saver = tf.train.Saver()
-#
-#     for layer in layers[:-1]:
-#         layer.train(train_data, num_of_epoch=15000)
-#
-#     layers[-1].train(supervised_train_data, num_of_epoch=15000)
-#
-#     saver.save(sess, "tmp/neighbour_model")
+with tf.Session() as sess:
+    input_size = train_data.inp_size()
+
+    for i in range(len(sizes)):
+        size = sizes[i]
+        if len(layers) == 0:
+            layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess))
+        else:
+            layers.append(ValidDenoising(i, input_size, size, tf.nn.sigmoid, sess=sess, previous=layers[-1]))
+
+        input_size = size
+
+    encoder_pt, inputX = finalLayer(layers)
+
+    layers.append(ValidDenoising(len(sizes), input_size, 1, tf.nn.sigmoid, inputX=inputX, sess=sess, supervised=True, previous_graph=encoder_pt))
+
+    sess.run(tf.global_variables_initializer())
+
+    saver = tf.train.Saver()
+
+    for layer in layers[:-1]:
+        layer.train(train_data, num_of_epoch=1500)
+
+    layers[-1].train(supervised_train_data, num_of_epoch=1500)
+
+    saver.save(sess, "tmp/neighbour_model1")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("tmp/neighbour_model.meta")
-    saver.restore(sess, 'tmp/neighbour_model')
+    saver = tf.train.import_meta_graph("tmp/neighbour_model1.meta")
+    saver.restore(sess, 'tmp/neighbour_model1')
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
 

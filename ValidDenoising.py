@@ -39,7 +39,7 @@ class ValidDenoising(Denoising):
                 local_cost = local_cost + c
 
             local_cost = local_cost/total_batches
-            if epoch % 1000 == 0:
+            if epoch % 100 == 0:
                 print(epoch)
                 print(local_cost)
                 print("Time Taken")
