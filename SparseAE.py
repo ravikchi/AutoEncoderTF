@@ -1,13 +1,12 @@
-import matplotlib.pyplot as plt
-import numpy as np
-
-from keras.layers import Input, Dense, Activation
-from keras.models import Model, Sequential
+from keras.layers import Dense
+from keras.models import Sequential, load_model
 from keras import regularizers
+from keras.callbacks import EarlyStopping
+from keras.optimizers import RMSprop, Adam, SGD
+from keras.callbacks import ModelCheckpoint
 
-from keras.datasets import mnist
 
-def getEncoders(layer_sizes, input_size):
+def get_encoders(layer_sizes, input_size):
     encoders = []
     decoders = []
 
@@ -25,7 +24,7 @@ def getEncoders(layer_sizes, input_size):
         else:
             encoder = Dense(size, activation='relu', activity_regularizer=regularizers.l1(10e-8))
 
-        decoder = Dense(decoder_size, activation='relu', activity_regularizer=regularizers.l1(10e-8))
+        decoder = Dense(decoder_size, activation='relu')
 
         encoders.append(encoder)
         decoders.append(decoder)
@@ -34,14 +33,20 @@ def getEncoders(layer_sizes, input_size):
     return encoders, decoders
 
 
-def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, num_epochs=20, layer_wise=False, final_layer=False):
+def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, num_epochs=20, layer_wise=False, final_layer=False, patience=2, optimizer=Adam(lr=0.001), model_chk_path='tmp\model_data'):
+    mcp = ModelCheckpoint(model_chk_path, monitor="val_loss", save_best_only=True, save_weights_only=False)
+    #callbacks = [mcp, EarlyStopping(monitor='val_loss', patience=patience, verbose=0)]
+    callbacks = [mcp]
+
     if layer_wise:
         decoders.reverse()
         for i in range(len(encoders)):
             model = Sequential()
             local_encoders = encoders[:i+1]
             local_decoders = decoders[:i+1]
+
             local_decoders.reverse()
+
             for k in range(len(encoders)):
                 j = k + 1
                 if k > i:
@@ -66,11 +71,12 @@ def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, 
 
                 model.add(decoder)
 
-            model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+            model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
             model.fit(x_train_loc, y_train_loc, epochs=num_epochs,
                       batch_size=256,
                       shuffle=True,
-                      validation_data=(x_test_loc, y_test_loc))
+                      validation_data=(x_test_loc, y_test_loc), callbacks=callbacks)
+            load_model(model_chk_path)
     else:
         model = Sequential()
         for i in range(len(encoders)):
@@ -84,54 +90,12 @@ def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, 
                 encoder.trainable = True
                 model.add(decoder)
 
-        model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+        model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
         model.fit(x_train_loc, y_train_loc, epochs=num_epochs,
                   batch_size=256,
                   shuffle=True,
-                  validation_data=(x_test_loc, y_test_loc))
+                  validation_data=(x_test_loc, y_test_loc), callbacks=callbacks)
+        load_model(model_chk_path)
 
     return model
 
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-x_train = x_train.astype('float32') / 255.
-x_test = x_test.astype('float32') / 255.
-x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
-
-layer_sizes = [1024, 512, 256]
-
-encoders_list, decoders_list = getEncoders(layer_sizes, 784)
-
-model = train(encoders_list, decoders_list,x_train, x_train, x_test, x_test, num_epochs=80, layer_wise=False)
-
-decoded_imgs = model.predict(x_test)
-
-encoders_list.append(Dense(1, activation='relu', activity_regularizer=regularizers.l1(10e-8)))
-
-model = train(encoders_list, decoders_list, x_train, y_train, x_test, y_test, num_epochs=80, layer_wise=False, final_layer=True)
-
-metrics = model.evaluate(x_test, y_test)
-
-print()
-
-for i in range(len(model.metrics_names)):
-    print(str(model.metrics_names[i]) + ": " + str(metrics[i]))
-
-n = 10  # how many digits we will display
-plt.figure(figsize=(20, 4))
-for i in range(n):
-    # display original
-    ax = plt.subplot(2, n, i + 1)
-    plt.imshow(x_test[i].reshape(28, 28))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-
-    # display reconstruction
-    ax = plt.subplot(2, n, i + 1 + n)
-    plt.imshow(decoded_imgs[i].reshape(28, 28))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-plt.show()

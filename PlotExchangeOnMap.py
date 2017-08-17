@@ -21,7 +21,7 @@ def getDistance(lat1, long1, lat2, long2):
 
     return distance
 
-with open("data/output_neighbour_model.csv") as csvfile:
+with open("data/output.csv") as csvfile:
     csv_data = list(csv.DictReader(csvfile))
 
 latitudes = []
@@ -69,4 +69,4 @@ gmap.scatter(good_lat_list, good_long_list, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/ne_uk.html")
+gmap.draw("maps/uk.html")
