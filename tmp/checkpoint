@@ -1,2 +1,2 @@
-model_checkpoint_path: "neighbour_model1"
-all_model_checkpoint_paths: "neighbour_model1"
+model_checkpoint_path: "neighbour_model2"
+all_model_checkpoint_paths: "neighbour_model2"

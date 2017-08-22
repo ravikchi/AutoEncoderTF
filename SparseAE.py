@@ -1,4 +1,4 @@
-from keras.layers import Dense
+from keras.layers import Dense, GaussianNoise
 from keras.models import Sequential, load_model
 from keras import regularizers
 from keras.callbacks import EarlyStopping
@@ -33,7 +33,7 @@ def get_encoders(layer_sizes, input_size):
     return encoders, decoders
 
 
-def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, num_epochs=20, layer_wise=False, final_layer=False, patience=2, optimizer=Adam(lr=0.001), model_chk_path='tmp\model_data'):
+def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, num_epochs=20, layer_wise=False, final_layer=False, patience=2, optimizer=Adam(lr=0.001), model_chk_path='tmp\model_data', batchsize=256):
     mcp = ModelCheckpoint(model_chk_path, monitor="val_loss", save_best_only=True, save_weights_only=False)
     #callbacks = [mcp, EarlyStopping(monitor='val_loss', patience=patience, verbose=0)]
     callbacks = [mcp]
@@ -73,7 +73,7 @@ def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, 
 
             model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
             model.fit(x_train_loc, y_train_loc, epochs=num_epochs,
-                      batch_size=256,
+                      batch_size=batchsize,
                       shuffle=True,
                       validation_data=(x_test_loc, y_test_loc), callbacks=callbacks)
             load_model(model_chk_path)
@@ -92,7 +92,7 @@ def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, 
 
         model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
         model.fit(x_train_loc, y_train_loc, epochs=num_epochs,
-                  batch_size=256,
+                  batch_size=batchsize,
                   shuffle=True,
                   validation_data=(x_test_loc, y_test_loc), callbacks=callbacks)
         load_model(model_chk_path)

@@ -95,6 +95,7 @@ def get_encoder(size, input_size):
 
 
 first, second, third, original_data = get_input_data('data/input_data.csv', False)
+
 orig_csv_data = np.array(first)
 domain_info = np.array(third)
 
@@ -141,18 +142,18 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=1500)
+        layer.train(train_data, num_of_epoch=15000)
 
-    layers[-1].train(supervised_train_data, num_of_epoch=1500)
+    layers[-1].train(supervised_train_data, num_of_epoch=15000)
 
-    saver.save(sess, "tmp/neighbour_model1")
+    saver.save(sess, "tmp/neighbour_model2")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("tmp/neighbour_model1.meta")
-    saver.restore(sess, 'tmp/neighbour_model1')
+    saver = tf.train.import_meta_graph("tmp/neighbour_model2.meta")
+    saver.restore(sess, 'tmp/neighbour_model2')
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
 

@@ -21,7 +21,7 @@ def getDistance(lat1, long1, lat2, long2):
 
     return distance
 
-with open("data/output.csv") as csvfile:
+with open("data/output_neighbour_model.csv") as csvfile:
     csv_data = list(csv.DictReader(csvfile))
 
 latitudes = []
@@ -44,7 +44,7 @@ finalI = 0
 #         minDist = lati
 #         finalI = i
 
-gmap = gmplot.GoogleMapPlotter(latitudes[finalI], longitudes[finalI], 10)
+#gmap = gmplot.GoogleMapPlotter(latitudes[finalI], longitudes[finalI], 10)
 
 good_lat_list = []
 good_long_list = []
@@ -53,20 +53,20 @@ longitudes = []
 
 for i in range(len(csv_data)):
     data = csv_data[i]
-    #if data['DOMAIN'] == 'Broadlands':
-    latitude = float(data['LAT'])
-    longitude = float(data['LONGITUDE'])
-    if float(data['RATING']) > 0.8:
-        good_lat_list.append(latitude)
-        good_long_list.append(longitude)
-#     else:
-#         latitudes.append(latitude)
-#         longitudes.append(longitude)
-#
-#
-# gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
+    if data['DOMAIN'] == 'Colchester & Ipswich':
+        latitude = float(data['LAT'])
+        longitude = float(data['LONGITUDE'])
+        if float(data['RATING']) > 0.8:
+            good_lat_list.append(latitude)
+            good_long_list.append(longitude)
+        else:
+            latitudes.append(latitude)
+            longitudes.append(longitude)
+
+gmap = gmplot.GoogleMapPlotter(latitudes[finalI], longitudes[finalI], 10)
+gmap.scatter(latitudes, longitudes, '#000000', size=500, marker=False)
 gmap.scatter(good_lat_list, good_long_list, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/uk.html")
+gmap.draw("maps/Colchester & Ipswich.html")
