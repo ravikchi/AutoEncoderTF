@@ -39,12 +39,6 @@ class ValidDenoising(Denoising):
                 local_cost = local_cost + c
 
             local_cost = local_cost/total_batches
-            if epoch % 100 == 0:
-                print(epoch)
-                print(local_cost)
-                print("Time Taken")
-                print(time.time() - start)
-                start = time.time()
 
             batch_xs = data.validInput
             batch_ys = data.validLabels
@@ -55,6 +49,14 @@ class ValidDenoising(Denoising):
                 _, val_c = self.sess.run([self.optimizer, self.cost],feed_dict={self.inputX: batch_xs, self.outputX: batch_ys})
             else:
                 _, val_c = self.sess.run([self.optimizer, self.cost], feed_dict={self.inputX: batch_xs, self.outputX:batch_xs})
+
+            if epoch % 1 == 0:
+                print(epoch)
+                print("loss "+str(local_cost))
+                print("Validation Loss "+str(val_c))
+                print("Time Taken")
+                print(time.time() - start)
+                start = time.time()
 
             if val_c < old_val_c:
                 self.validation_weight = tf.identity(self.weight)

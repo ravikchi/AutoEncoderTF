@@ -142,18 +142,18 @@ with tf.Session() as sess:
     saver = tf.train.Saver()
 
     for layer in layers[:-1]:
-        layer.train(train_data, num_of_epoch=15000)
+        layer.train(train_data, num_of_epoch=25000)
 
-    layers[-1].train(supervised_train_data, num_of_epoch=15000)
+    layers[-1].train(supervised_train_data, num_of_epoch=25000)
 
-    saver.save(sess, "tmp/neighbour_model2")
+    saver.save(sess, "tmp/neighbour_model3")
 
 outputs = []
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    saver = tf.train.import_meta_graph("tmp/neighbour_model2.meta")
-    saver.restore(sess, 'tmp/neighbour_model2')
+    saver = tf.train.import_meta_graph("tmp/neighbour_model3.meta")
+    saver.restore(sess, 'tmp/neighbour_model3')
 
     decoder, inputX = mergeLayers(len(sizes), train_data.inp_size())
 
@@ -167,7 +167,7 @@ with tf.Session() as sess:
 
     outputs = sess.run(encoder, feed_dict={inputX: domain_test_input})
 
-file_name = "data/output_neighbour_model.csv"
+file_name = "data/output_neighbour_model1.csv"
 
 thefile = open(file_name, 'w')
 thefile.write("NODE_ID,DOMAIN,EASTING,NORTHING,LAT,LONGITUDE,RATING\n")

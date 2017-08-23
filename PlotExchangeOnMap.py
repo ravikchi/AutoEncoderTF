@@ -53,7 +53,7 @@ longitudes = []
 
 for i in range(len(csv_data)):
     data = csv_data[i]
-    if data['DOMAIN'] == 'Colchester & Ipswich':
+    if data['DOMAIN'] == 'Peterborough':
         latitude = float(data['LAT'])
         longitude = float(data['LONGITUDE'])
         if float(data['RATING']) > 0.8:
@@ -69,4 +69,4 @@ gmap.scatter(good_lat_list, good_long_list, '#F00000', size=500, marker=False)
 
 
 
-gmap.draw("maps/Colchester & Ipswich.html")
+gmap.draw("maps/Peterborough.html")
