@@ -21,11 +21,11 @@ for i in range(len(domain_info)):
     domain_test_input.append(orig_csv_data[i])
     domain_test_output.append(domain)
 
-layer_sizes = [50]
+layer_sizes = [50, 100, 50]
 
 encoders_list, decoders_list = se.get_encoders(layer_sizes, len(orig_csv_data[0]))
 
-#model = se.train(encoders_list, decoders_list,csv_data[:1000], csv_data[:1000], csv_data[1000:], csv_data[1000:],patience=2, num_epochs=400, layer_wise=True, optimizer=RMSprop(lr=0.0001))
+model = se.train(encoders_list, decoders_list,csv_data[:1000], csv_data[:1000], csv_data[1000:], csv_data[1000:],patience=2, num_epochs=100, layer_wise=True, optimizer=RMSprop(lr=0.0001))
 
 encoders_list.append(Dense(1, activation='sigmoid', activity_regularizer=regularizers.l1(10e-8)))
 

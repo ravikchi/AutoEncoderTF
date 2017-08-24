@@ -38,7 +38,7 @@ def get_input_data(location, norm_ratings):
 
 
             if key == 'RATING':
-                output.append(data[key])
+                output.append(float(data[key]))
                 continue
 
             element.append(data[key])

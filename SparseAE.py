@@ -35,8 +35,8 @@ def get_encoders(layer_sizes, input_size):
 
 def train(encoders, decoders, x_train_loc, y_train_loc, x_test_loc, y_test_loc, num_epochs=20, layer_wise=False, final_layer=False, patience=2, optimizer=Adam(lr=0.001), model_chk_path='tmp\model_data', batchsize=256):
     mcp = ModelCheckpoint(model_chk_path, monitor="val_loss", save_best_only=True, save_weights_only=False)
-    #callbacks = [mcp, EarlyStopping(monitor='val_loss', patience=patience, verbose=0)]
-    callbacks = [mcp]
+    callbacks = [mcp, EarlyStopping(monitor='val_loss', patience=patience, verbose=0)]
+    #callbacks = [mcp]
 
     if layer_wise:
         decoders.reverse()
